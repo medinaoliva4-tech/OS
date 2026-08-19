@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CommandPalette, type PaletteEntry } from "./CommandPalette";
+import { CurrencySwitch } from "./CurrencySwitch";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 import type { SessionUser } from "@/lib/session";
@@ -26,6 +27,7 @@ export function Topbar({
       <Link href="/tasks?due=overdue" className="btn btn-ghost focusable hidden sm:inline-flex">
         Today
       </Link>
+      <CurrencySwitch />
       <ThemeToggle />
       <UserMenu user={user} />
     </header>

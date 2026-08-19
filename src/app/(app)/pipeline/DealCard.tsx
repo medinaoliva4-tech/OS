@@ -3,9 +3,10 @@
 import { useTransition } from "react";
 import { setDealStage, deleteDeal } from "@/app/actions/deals";
 import { DEAL_STAGES, DEAL_SOURCES, option } from "@/lib/domain";
-import { formatDate, formatMoney, daysUntil } from "@/lib/format";
+import { formatDate, daysUntil } from "@/lib/format";
 import { BrandDot, Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/ui/Avatar";
+import { Money } from "@/components/ui/Money";
 
 export type DealCardData = {
   id: string;
@@ -51,7 +52,7 @@ export function DealCard({ deal }: { deal: DealCardData }) {
 
       <div className="mt-2 flex items-baseline justify-between gap-2">
         <span className="text-[15px] font-semibold tabular-nums">
-          {formatMoney(deal.value, deal.currency, { compact: true })}
+          <Money amount={deal.value} currency={deal.currency} compact />
         </span>
         <span
           className="text-[11px] tabular-nums"

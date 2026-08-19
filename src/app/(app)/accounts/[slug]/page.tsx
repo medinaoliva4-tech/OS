@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney, formatRelative } from "@/lib/format";
+import { formatDate, formatRelative } from "@/lib/format";
+import { Money } from "@/components/ui/Money";
 import {
   ACCOUNT_STATUSES,
   ACCOUNT_TIERS,
@@ -202,7 +203,7 @@ export default async function AccountPage({
       )}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Stat label="MRR" value={formatMoney(account.mrr, account.currency)} />
+        <Stat label="MRR" value={<Money amount={account.mrr} currency={account.currency} />} />
         <Stat
           label="Content system"
           value={`${stepsDone}/${account.pipelineSteps.length}`}
@@ -416,7 +417,7 @@ export default async function AccountPage({
                           {deal.title}
                         </span>
                         <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">
-                          {formatMoney(deal.value, deal.currency, { compact: true })}
+                          <Money amount={deal.value} currency={deal.currency} compact />
                         </span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">

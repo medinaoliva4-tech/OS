@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { pipelineProgress } from "@/lib/queries";
-import { formatMoney } from "@/lib/format";
 import { ACCOUNT_STATUSES, ACCOUNT_TIERS, option } from "@/lib/domain";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, EmptyState, Meter } from "@/components/ui/Card";
+import { Money } from "@/components/ui/Money";
 import { Chip } from "@/components/ui/Chip";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Avatar } from "@/components/ui/Avatar";
@@ -40,7 +40,12 @@ export default async function AccountsPage() {
       <PageHeader
         eyebrow="Revenue"
         title="Brands"
-        description={`${accounts.length} ${accounts.length === 1 ? "brand" : "brands"} · ${formatMoney(totalMrr)} monthly recurring across the active ones.`}
+        description={
+          <>
+            {accounts.length} {accounts.length === 1 ? "brand" : "brands"} ·{" "}
+            <Money amount={totalMrr} /> monthly recurring across the active ones.
+          </>
+        }
         actions={
           <Link href="/accounts/new" className="btn btn-primary focusable">
             <Icon name="plus" size={15} />
@@ -138,11 +143,11 @@ export default async function AccountsPage() {
                     <div>
                       <dt className="label">MRR</dt>
                       <dd className="mt-0.5 text-[13px] font-semibold tabular-nums">
-                        {account.mrr > 0
-                          ? formatMoney(account.mrr, account.currency, {
-                              compact: true,
-                            })
-                          : "—"}
+                        {account.mrr > 0 ? (
+                          <Money amount={account.mrr} currency={account.currency} compact />
+                        ) : (
+                          "—"
+                        )}
                       </dd>
                     </div>
                     <div>

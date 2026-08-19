@@ -1,10 +1,10 @@
 import { db } from "@/lib/db";
 import { weighted } from "@/lib/queries";
-import { formatMoney } from "@/lib/format";
 import { DEAL_STAGES } from "@/lib/domain";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, Stat } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { Money } from "@/components/ui/Money";
 import { DealCard, type DealCardData } from "./DealCard";
 import { NewDealForm } from "./NewDealForm";
 
@@ -50,25 +50,17 @@ export default async function PipelinePage() {
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
           label="Weighted forecast"
-          value={formatMoney(weighted(open), "USD", { compact: true })}
+          value={<Money amount={weighted(open)} compact />}
           sub={`${open.length} open ${open.length === 1 ? "deal" : "deals"}`}
         />
         <Stat
           label="Unweighted"
-          value={formatMoney(
-            open.reduce((s, d) => s + d.value, 0),
-            "USD",
-            { compact: true },
-          )}
+          value={<Money amount={open.reduce((s, d) => s + d.value, 0)} compact />}
           sub="If everything landed"
         />
         <Stat
           label="Closed won"
-          value={formatMoney(
-            won.reduce((s, d) => s + d.value, 0),
-            "USD",
-            { compact: true },
-          )}
+          value={<Money amount={won.reduce((s, d) => s + d.value, 0)} compact />}
           sub={`${won.length} ${won.length === 1 ? "deal" : "deals"}`}
           tone="var(--color-ok)"
         />
@@ -112,9 +104,7 @@ export default async function PipelinePage() {
                     className="mt-1 text-[11px] tabular-nums"
                     style={{ color: "var(--text-faint)" }}
                   >
-                    {columnValue > 0
-                      ? formatMoney(columnValue, "USD", { compact: true })
-                      : "—"}
+                    {columnValue > 0 ? <Money amount={columnValue} compact /> : "—"}
                   </p>
                 </header>
 
@@ -142,11 +132,7 @@ export default async function PipelinePage() {
       {lost.length > 0 && (
         <p className="mt-6 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
           {lost.length} lost {lost.length === 1 ? "deal" : "deals"} worth{" "}
-          {formatMoney(
-            lost.reduce((s, d) => s + d.value, 0),
-            "USD",
-            { compact: true },
-          )}{" "}
+          <Money amount={lost.reduce((s, d) => s + d.value, 0)} compact />{" "}
           — kept for the win-rate maths, not for the forecast.
         </p>
       )}
