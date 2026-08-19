@@ -89,6 +89,43 @@ export async function createDeal(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+export async function updateDeal(formData: FormData) {
+  const user = await requireUser();
+  requireFinancialAccess(user);
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const title = String(formData.get("title") ?? "").trim();
+  const value = Number(formData.get("value") ?? 0);
+  const probability = Number(formData.get("probability") ?? 0);
+  const closeRaw = String(formData.get("expectedCloseDate") ?? "");
+
+  const deal = await db.deal.update({
+    where: { id },
+    data: {
+      title: title || undefined,
+      value: Number.isFinite(value) ? Math.max(0, Math.round(value)) : undefined,
+      probability: Number.isFinite(probability)
+        ? Math.min(100, Math.max(0, Math.round(probability)))
+        : undefined,
+      source: String(formData.get("source") ?? "") || null,
+      expectedCloseDate: closeRaw ? new Date(closeRaw) : null,
+      notes: String(formData.get("notes") ?? "").trim() || null,
+    },
+  });
+
+  await logActivity({
+    actorId: user.id,
+    verb: "updated",
+    entityType: "Deal",
+    entityId: deal.id,
+    summary: `Updated ${deal.title}`,
+  });
+
+  revalidatePath("/", "layout");
+}
+
 export async function deleteDeal(dealId: string) {
   const user = await requireUser();
   requireFinancialAccess(user);

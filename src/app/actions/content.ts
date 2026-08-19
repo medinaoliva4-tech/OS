@@ -225,6 +225,31 @@ export async function setGuidelineStatus(guidelineId: string, status: string) {
   refresh();
 }
 
+export async function updateGuideline(
+  guidelineId: string,
+  data: { content: string; sourceUrl: string },
+) {
+  const user = await requireUser();
+
+  const guideline = await db.guideline.update({
+    where: { id: guidelineId },
+    data: {
+      content: data.content.trim() || null,
+      sourceUrl: data.sourceUrl.trim() || null,
+    },
+  });
+
+  await logActivity({
+    actorId: user.id,
+    verb: "updated",
+    entityType: "Guideline",
+    entityId: guideline.id,
+    summary: `Updated ${guideline.section} guideline content`,
+  });
+
+  refresh();
+}
+
 export async function setPipelineStepStatus(stepId: string, status: string) {
   const user = await requireUser();
   if (!VALID_PIPELINE_STATUSES.includes(status)) return;

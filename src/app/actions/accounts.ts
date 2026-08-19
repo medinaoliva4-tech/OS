@@ -189,6 +189,36 @@ export async function createContact(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+export async function updateContact(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+
+  const contact = await db.contact.update({
+    where: { id },
+    data: {
+      name,
+      email: String(formData.get("email") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      title: String(formData.get("title") ?? "").trim() || null,
+      linkedin: String(formData.get("linkedin") ?? "").trim() || null,
+      isPrimary: formData.get("isPrimary") === "on",
+      notes: String(formData.get("notes") ?? "").trim() || null,
+    },
+  });
+
+  await logActivity({
+    actorId: user.id,
+    verb: "updated",
+    entityType: "Contact",
+    entityId: contact.id,
+    summary: `Updated contact ${contact.name}`,
+  });
+
+  revalidatePath("/", "layout");
+}
+
 export async function deleteContact(contactId: string) {
   const user = await requireUser();
   const contact = await db.contact.delete({ where: { id: contactId } });

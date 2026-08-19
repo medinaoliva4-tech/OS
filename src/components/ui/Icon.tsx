@@ -32,7 +32,8 @@ export type IconName =
   | "clock"
   | "filter"
   | "arrowRight"
-  | "book";
+  | "book"
+  | "edit";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -122,6 +123,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  edit: (
+    <path d="M17 3a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  ),
   check: <path d="m4.5 12.5 5 5 10-11" />,
   chevronRight: <path d="m9 5 7 7-7 7" />,
   chevronDown: <path d="m5 9 7 7 7-7" />,
