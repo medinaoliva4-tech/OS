@@ -12,7 +12,8 @@
 // ---------------------------------------------------------------------------
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -22,15 +23,18 @@ datasource db {
   //
   //   DATABASE_URL  the pooled one (Supavisor, port 6543). Serverless
   //                 functions open and drop connections constantly, so every
-  //                 query the app runs goes through the pooler.
+  //                 query the app runs goes through the pooler. The app
+  //                 passes this to the driver adapter at runtime (src/lib/db.ts).
   //   DIRECT_URL    the direct one (port 5432). Transaction-mode pooling
   //                 cannot run DDL or advisory locks, so migrations must
-  //                 bypass it.
+  //                 bypass it. The CLI reads this via prisma.config.ts.
   //
   // Getting this wrong fails in the least helpful way: the app works and
   // migrations hang.
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  //
+  // As of Prisma 7, url/directUrl here are deprecated in favor of
+  // prisma.config.ts — see that file for where each connection string is
+  // actually wired in.
 }
 
 // ===========================================================================

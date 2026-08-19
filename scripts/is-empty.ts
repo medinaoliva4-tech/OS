@@ -13,9 +13,11 @@
  * Postgres, where "has this been set up?" is not a filesystem question.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client";
 
-const db = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
 
 async function main(): Promise<number> {
   try {

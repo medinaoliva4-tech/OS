@@ -10,12 +10,14 @@
  * Run against an already-seeded database:  npx tsx scripts/verify-seed.ts
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client";
 import { ALLOWED_EMAIL_DOMAIN } from "../src/lib/policy";
 
 const EXPECTED = { users: 2, accounts: 2, tasks: 20, integrations: 9 };
 
-const db = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
 const failures: string[] = [];
 
 function expect(label: string, actual: number, wanted: number) {

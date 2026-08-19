@@ -9,6 +9,7 @@ on:
       - "docker-compose.yml"
       - "package*.json"
       - "prisma/**"
+      - "prisma.config.ts"
       - "src/**"
       - "next.config.ts"
       - ".github/workflows/publish-image.yml"
