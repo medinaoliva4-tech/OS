@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/passwords";
 import { logActivity } from "@/lib/activity";
 import { sanitizeImageUrl } from "@/lib/sanitize";
-import { ALLOWED_EMAIL_DOMAIN, atLeast, checkEmailDomain, ROLES } from "@/lib/policy";
+import { atLeast, checkEmailDomain, ROLES } from "@/lib/policy";
 
 export type TeamState = { error?: string; ok?: string };
 
@@ -203,5 +203,3 @@ export async function changeOwnPassword(
 
   return { ok: "Password updated." };
 }
-
-export { ALLOWED_EMAIL_DOMAIN };
