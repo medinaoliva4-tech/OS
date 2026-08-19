@@ -5,12 +5,33 @@ export function Avatar({
   hue = 210,
   size = 28,
   title,
+  imageUrl,
 }: {
   name: string;
   hue?: number;
   size?: number;
   title?: string;
+  /** A real photo — data URI or https URL. Falls back to initials when absent. */
+  imageUrl?: string | null;
 }) {
+  if (imageUrl) {
+    return (
+      // Avatars are small, user-uploaded data URIs or arbitrary https URLs —
+      // not assets next/image's optimizer (which needs a known, allow-listed
+      // domain) can do anything useful with.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt={title ?? name}
+        title={title ?? name}
+        width={size}
+        height={size}
+        className="inline-block shrink-0 rounded-full object-cover select-none"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   return (
     <span
       title={title ?? name}

@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Wordmark } from "@/components/ui/Logo";
 
 /** Nav items that lead to a money screen — hidden entirely from MEMBER. */
-const FINANCIAL_HREFS = new Set(["/pipeline"]);
+const FINANCIAL_HREFS = new Set(["/pipeline", "/finance"]);
 
 export function Sidebar({
   counts,

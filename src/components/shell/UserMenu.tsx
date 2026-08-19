@@ -38,7 +38,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
         aria-expanded={open}
         aria-label="Account menu"
       >
-        <Avatar name={user.name} hue={user.avatarHue} size={28} />
+        <Avatar name={user.name} hue={user.avatarHue} imageUrl={user.avatarUrl} size={28} />
       </button>
 
       {open && (

@@ -55,6 +55,7 @@ export type SessionUser = {
   title: string | null;
   role: string;
   avatarHue: number;
+  avatarUrl: string | null;
 };
 
 export async function createSession(
@@ -105,8 +106,8 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   if (!session || session.expiresAt < new Date()) return null;
   if (!session.user.active) return null;
 
-  const { id, email, name, title, role, avatarHue } = session.user;
-  return { id, email, name, title, role, avatarHue };
+  const { id, email, name, title, role, avatarHue, avatarUrl } = session.user;
+  return { id, email, name, title, role, avatarHue, avatarUrl };
 });
 
 /** Use in any server component or action that must not run for a guest. */

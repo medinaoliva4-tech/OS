@@ -51,11 +51,23 @@ export const NAV: NavGroup[] = [
         icon: "contacts",
         hint: "People at client brands",
       },
+      {
+        href: "/finance",
+        label: "Finance",
+        icon: "finance",
+        hint: "Costs, pay, and reinvestments",
+      },
     ],
   },
   {
     title: "Production",
     items: [
+      {
+        href: "/services",
+        label: "Services",
+        icon: "services",
+        hint: "The lines of work the agency sells, and who runs each one",
+      },
       {
         href: "/tasks",
         label: "Pendientes",

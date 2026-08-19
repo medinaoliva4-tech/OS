@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/passwords";
 import { logActivity } from "@/lib/activity";
+import { sanitizeImageUrl } from "@/lib/sanitize";
 import { ALLOWED_EMAIL_DOMAIN, atLeast, checkEmailDomain, ROLES } from "@/lib/policy";
 
 export type TeamState = { error?: string; ok?: string };
@@ -131,6 +132,36 @@ export async function setUserActive(userId: string, active: boolean) {
   });
 
   revalidatePath("/team");
+}
+
+export type AvatarState = { error?: string; ok?: string };
+
+/** A viewer can only ever change their own photo — never someone else's. */
+export async function updateOwnAvatar(
+  _prev: AvatarState,
+  formData: FormData,
+): Promise<AvatarState> {
+  const actor = await requireUser();
+
+  const raw = String(formData.get("avatarUrl") ?? "");
+  if (!raw) {
+    await db.user.update({ where: { id: actor.id }, data: { avatarUrl: null } });
+    revalidatePath("/", "layout");
+    return { ok: "Photo removed." };
+  }
+
+  const sanitized = sanitizeImageUrl(raw);
+  if (!sanitized) {
+    return { error: "That image didn't look right — try a PNG, JPEG, or WebP under 512KB." };
+  }
+
+  await db.user.update({
+    where: { id: actor.id },
+    data: { avatarUrl: sanitized },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: "Photo updated." };
 }
 
 export type PasswordState = { error?: string; ok?: string };

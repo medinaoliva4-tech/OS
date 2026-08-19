@@ -17,7 +17,7 @@ const EVENT = "inherent-os-currency-change";
 export type Currency = "USD" | "GTQ";
 
 /** Used until the live rate loads (or if it never does) — better than a blank amount. */
-const FALLBACK_USD_TO_GTQ = 7.75;
+export const FALLBACK_USD_TO_GTQ = 7.75;
 
 type RateCache = { rate: number; fetchedAt: number };
 

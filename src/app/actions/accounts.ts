@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 import { canViewFinancials } from "@/lib/policy";
 import { logActivity } from "@/lib/activity";
 import { swatchFor } from "@/lib/brand";
+import { sanitizeImageUrl as sanitizeLogo } from "@/lib/sanitize";
 import { CONTENT_PIPELINE, GUIDELINE_SECTIONS } from "@/lib/pipeline-blueprint";
 
 function slugify(value: string): string {
@@ -17,21 +18,6 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
-}
-
-/** Accept only an inline image or an https URL — never arbitrary markup. */
-const MAX_LOGO_BYTES = 512 * 1024;
-
-function sanitizeLogo(raw: string): string | null {
-  const value = raw.trim();
-  if (!value) return null;
-  if (value.length > MAX_LOGO_BYTES * 1.4) return null;
-
-  if (/^data:image\/(svg\+xml|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)) {
-    return value;
-  }
-  if (/^https:\/\/[^\s"'<>]+$/i.test(value)) return value;
-  return null;
 }
 
 export async function createAccount(formData: FormData) {
@@ -54,6 +40,7 @@ export async function createAccount(formData: FormData) {
   // wasn't rendered for them.
   const canSetMrr = canViewFinancials(user.role);
   const mrr = canSetMrr ? Number(formData.get("mrr") ?? 0) : 0;
+  const mrrCurrency = String(formData.get("mrrCurrency") ?? "USD");
 
   const account = await db.account.create({
     data: {
@@ -68,6 +55,7 @@ export async function createAccount(formData: FormData) {
       brandHex: String(formData.get("brandHex") ?? "") || swatchFor(slug),
       logoUrl: sanitizeLogo(String(formData.get("logoUrl") ?? "")),
       mrr: Number.isFinite(mrr) ? Math.max(0, Math.round(mrr)) : 0,
+      currency: canSetMrr && (mrrCurrency === "USD" || mrrCurrency === "GTQ") ? mrrCurrency : "USD",
       githubRepo: String(formData.get("githubRepo") ?? "").trim() || null,
       driveFolderUrl: String(formData.get("driveFolderUrl") ?? "").trim() || null,
       jockeyWorkspace: String(formData.get("jockeyWorkspace") ?? "").trim() || slug,
@@ -121,6 +109,7 @@ export async function updateAccount(formData: FormData) {
   // leave the field exactly as it is.
   const canSetMrr = canViewFinancials(user.role);
   const mrr = Number(formData.get("mrr") ?? 0);
+  const mrrCurrency = String(formData.get("mrrCurrency") ?? "USD");
 
   const account = await db.account.update({
     where: { id },
@@ -138,6 +127,10 @@ export async function updateAccount(formData: FormData) {
           ? Math.max(0, Math.round(mrr))
           : 0
         : undefined,
+      currency:
+        canSetMrr && (mrrCurrency === "USD" || mrrCurrency === "GTQ")
+          ? mrrCurrency
+          : undefined,
       githubRepo: String(formData.get("githubRepo") ?? "").trim() || null,
       githubPath: String(formData.get("githubPath") ?? "").trim() || null,
       driveFolderUrl: String(formData.get("driveFolderUrl") ?? "").trim() || null,

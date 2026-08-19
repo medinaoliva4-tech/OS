@@ -45,6 +45,10 @@ const MODELS = {
   Integration: db.integration,
   Note: db.note,
   Activity: db.activity,
+  Service: db.service,
+  Cost: db.cost,
+  Salary: db.salary,
+  Reinvestment: db.reinvestment,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as const satisfies Record<string, any>;
 
@@ -76,6 +80,14 @@ const MODEL_FIELDS: Record<ModelName, string> = {
   Note: "id, body, entityType, entityId, authorId(User.id), accountId(Account.id)",
   Activity:
     "id, verb, entityType, entityId, summary, meta(JSON string), actorId(User.id) — read-mostly, the feed every mutation writes to",
+  Service:
+    "id, name, slug*, description, color(hex), status(ACTIVE|PAUSED), position(int) — members is a many-to-many with User, not settable via create/update here; use the /services UI or connect/disconnect via a raw update on the `members` relation",
+  Cost:
+    "id, name*, category(TOOLS|INFRA|OFFICE|MARKETING|LEGAL|OTHER), amount(int)*, currency, recurrence(ONE_TIME|MONTHLY|YEARLY), startDate, endDate, notes — financial, ADMIN+ only in the UI",
+  Salary:
+    "id, amount(int)*, currency, cadence(MONTHLY|YEARLY), startDate, notes, userId*(User.id, unique — one row per person) — financial, ADMIN+ only in the UI",
+  Reinvestment:
+    "id, title*, amount(int)*, currency, date, notes — financial, ADMIN+ only in the UI",
 };
 
 // ---------------------------------------------------------------------------

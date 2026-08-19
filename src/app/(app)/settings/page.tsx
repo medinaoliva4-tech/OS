@@ -12,6 +12,7 @@ import {
   InherentMark,
 } from "@/components/ui/brand/InherentMarks";
 import { PasswordForm } from "./PasswordForm";
+import { AvatarUpload } from "./AvatarUpload";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -44,26 +45,41 @@ export default async function SettingsPage() {
         <Card>
           <CardHeader title="You" />
           {user && (
-            <div className="flex items-center gap-3">
-              <Avatar name={user.name} hue={user.avatarHue} size={44} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{user.name}</p>
-                <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-                  {user.email}
-                </p>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <Chip tone={user.role === "OWNER" ? "accent" : "neutral"}>
-                    {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
-                  </Chip>
-                  {user.title && (
-                    <span
-                      className="text-[11px]"
-                      style={{ color: "var(--text-faint)" }}
-                    >
-                      {user.title}
-                    </span>
-                  )}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar
+                  name={user.name}
+                  hue={user.avatarHue}
+                  imageUrl={user.avatarUrl}
+                  size={44}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{user.name}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                    {user.email}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Chip tone={user.role === "OWNER" ? "accent" : "neutral"}>
+                      {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
+                    </Chip>
+                    {user.title && (
+                      <span
+                        className="text-[11px]"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        {user.title}
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              <div className="border-t pt-4" style={{ borderColor: "var(--line)" }}>
+                <AvatarUpload
+                  name={user.name}
+                  hue={user.avatarHue}
+                  currentUrl={user.avatarUrl}
+                />
               </div>
             </div>
           )}

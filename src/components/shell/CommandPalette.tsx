@@ -16,7 +16,7 @@ export type PaletteEntry = {
 };
 
 /** Nav items that lead to a money screen — hidden entirely from MEMBER. */
-const FINANCIAL_HREFS = new Set(["/pipeline"]);
+const FINANCIAL_HREFS = new Set(["/pipeline", "/finance"]);
 
 /**
  * Cmd/Ctrl-K navigation. The entries for brands are passed in from the server

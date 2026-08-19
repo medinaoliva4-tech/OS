@@ -24,6 +24,7 @@ export type AccountFormValues = {
   brandHex?: string;
   logoUrl?: string | null;
   mrr?: number;
+  currency?: string;
   githubRepo?: string | null;
   githubPath?: string | null;
   driveFolderUrl?: string | null;
@@ -230,17 +231,28 @@ export function AccountForm({
           {canEditFinancials && (
             <div>
               <label htmlFor="mrr" className="label mb-1.5 block">
-                MRR (USD)
+                MRR
               </label>
-              <input
-                id="mrr"
-                name="mrr"
-                type="number"
-                min={0}
-                step={100}
-                defaultValue={values.mrr ?? 0}
-                className="field"
-              />
+              <div className="flex gap-1.5">
+                <input
+                  id="mrr"
+                  name="mrr"
+                  type="number"
+                  min={0}
+                  step={100}
+                  defaultValue={values.mrr ?? 0}
+                  className="field flex-1"
+                />
+                <select
+                  name="mrrCurrency"
+                  defaultValue={values.currency ?? "USD"}
+                  aria-label="MRR currency"
+                  className="field !w-auto"
+                >
+                  <option value="USD">USD</option>
+                  <option value="GTQ">GTQ</option>
+                </select>
+              </div>
             </div>
           )}
 
