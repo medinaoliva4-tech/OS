@@ -7,18 +7,32 @@ import { NAV, activeHref } from "@/lib/nav";
 import { Icon } from "@/components/ui/Icon";
 import { Wordmark } from "@/components/ui/Logo";
 
-export function Sidebar({ counts }: { counts: Record<string, number> }) {
+/** Nav items that lead to a money screen — hidden entirely from MEMBER. */
+const FINANCIAL_HREFS = new Set(["/pipeline"]);
+
+export function Sidebar({
+  counts,
+  hideFinancial = false,
+}: {
+  counts: Record<string, number>;
+  hideFinancial?: boolean;
+}) {
   const pathname = usePathname();
   const active = activeHref(pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
-      {NAV.map((group) => (
+      {NAV.map((group) => {
+        const items = hideFinancial
+          ? group.items.filter((item) => !FINANCIAL_HREFS.has(item.href))
+          : group.items;
+        if (items.length === 0) return null;
+        return (
         <div key={group.title}>
           <p className="label px-2.5 pb-2">{group.title}</p>
           <ul className="space-y-0.5">
-            {group.items.map((item) => {
+            {items.map((item) => {
               const isActive = active === item.href;
               const count = counts[item.href];
               return (
@@ -59,7 +73,8 @@ export function Sidebar({ counts }: { counts: Record<string, number> }) {
             })}
           </ul>
         </div>
-      ))}
+        );
+      })}
     </nav>
   );
 

@@ -3,13 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { logActivity } from "@/lib/activity";
 import { DEAL_STAGES } from "@/lib/domain";
 
 const VALID_STAGES = DEAL_STAGES.map((s) => s.value);
 
+/** Deals are money — every mutation here is off-limits below ADMIN. */
+function requireFinancialAccess(user: { role: string }) {
+  if (!canViewFinancials(user.role)) {
+    throw new Error("You don't have access to financial data.");
+  }
+}
+
 export async function setDealStage(dealId: string, stage: string) {
   const user = await requireUser();
+  requireFinancialAccess(user);
   if (!VALID_STAGES.includes(stage)) {
     throw new Error(`Unknown deal stage: ${stage}`);
   }
@@ -41,6 +50,7 @@ export async function setDealStage(dealId: string, stage: string) {
 
 export async function createDeal(formData: FormData) {
   const user = await requireUser();
+  requireFinancialAccess(user);
 
   const title = String(formData.get("title") ?? "").trim();
   const accountId = String(formData.get("accountId") ?? "");
@@ -81,6 +91,7 @@ export async function createDeal(formData: FormData) {
 
 export async function deleteDeal(dealId: string) {
   const user = await requireUser();
+  requireFinancialAccess(user);
   const deal = await db.deal.delete({ where: { id: dealId } });
 
   await logActivity({

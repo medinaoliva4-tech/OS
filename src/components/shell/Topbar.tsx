@@ -8,9 +8,11 @@ import type { SessionUser } from "@/lib/session";
 export function Topbar({
   user,
   brands,
+  hideFinancial = false,
 }: {
   user: SessionUser;
   brands: PaletteEntry[];
+  hideFinancial?: boolean;
 }) {
   return (
     <header
@@ -22,7 +24,7 @@ export function Topbar({
     >
       <div className="w-10 lg:hidden" aria-hidden />
       <div className="flex-1">
-        <CommandPalette brands={brands} />
+        <CommandPalette brands={brands} hideFinancial={hideFinancial} />
       </div>
       <Link href="/tasks?due=overdue" className="btn btn-ghost focusable hidden sm:inline-flex">
         Today

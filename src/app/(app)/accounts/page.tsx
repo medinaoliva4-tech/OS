@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { pipelineProgress } from "@/lib/queries";
+import { getCurrentUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { ACCOUNT_STATUSES, ACCOUNT_TIERS, option } from "@/lib/domain";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, EmptyState, Meter } from "@/components/ui/Card";
@@ -14,6 +16,9 @@ export const metadata = { title: "Brands" };
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
+  const user = await getCurrentUser();
+  const canView = user ? canViewFinancials(user.role) : false;
+
   const [accounts, steps] = await Promise.all([
     db.account.findMany({
       include: {
@@ -41,10 +46,14 @@ export default async function AccountsPage() {
         eyebrow="Revenue"
         title="Brands"
         description={
-          <>
-            {accounts.length} {accounts.length === 1 ? "brand" : "brands"} ·{" "}
-            <Money amount={totalMrr} /> monthly recurring across the active ones.
-          </>
+          canView ? (
+            <>
+              {accounts.length} {accounts.length === 1 ? "brand" : "brands"} ·{" "}
+              <Money amount={totalMrr} /> monthly recurring across the active ones.
+            </>
+          ) : (
+            `${accounts.length} ${accounts.length === 1 ? "brand" : "brands"}.`
+          )
         }
         actions={
           <Link href="/accounts/new" className="btn btn-primary focusable">
@@ -137,19 +146,21 @@ export default async function AccountsPage() {
                   </div>
 
                   <dl
-                    className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center"
+                    className={`mt-4 grid gap-2 border-t pt-3 text-center ${canView ? "grid-cols-3" : "grid-cols-2"}`}
                     style={{ borderColor: "var(--line)" }}
                   >
-                    <div>
-                      <dt className="label">MRR</dt>
-                      <dd className="mt-0.5 text-[13px] font-semibold tabular-nums">
-                        {account.mrr > 0 ? (
-                          <Money amount={account.mrr} currency={account.currency} compact />
-                        ) : (
-                          "—"
-                        )}
-                      </dd>
-                    </div>
+                    {canView && (
+                      <div>
+                        <dt className="label">MRR</dt>
+                        <dd className="mt-0.5 text-[13px] font-semibold tabular-nums">
+                          {account.mrr > 0 ? (
+                            <Money amount={account.mrr} currency={account.currency} compact />
+                          ) : (
+                            "—"
+                          )}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt className="label">Open</dt>
                       <dd

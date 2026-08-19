@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate, formatRelative } from "@/lib/format";
 import { Money } from "@/components/ui/Money";
+import { getCurrentUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import {
   ACCOUNT_STATUSES,
   ACCOUNT_TIERS,
@@ -43,6 +45,8 @@ export default async function AccountPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const user = await getCurrentUser();
+  const canView = user ? canViewFinancials(user.role) : false;
 
   const account = await db.account.findUnique({
     where: { slug },
@@ -202,8 +206,10 @@ export default async function AccountPage({
         </div>
       )}
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Stat label="MRR" value={<Money amount={account.mrr} currency={account.currency} />} />
+      <div className={`mb-5 grid gap-3 sm:grid-cols-2 ${canView ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
+        {canView && (
+          <Stat label="MRR" value={<Money amount={account.mrr} currency={account.currency} />} />
+        )}
         <Stat
           label="Content system"
           value={`${stepsDone}/${account.pipelineSteps.length}`}
@@ -393,48 +399,50 @@ export default async function AccountPage({
             />
           </Card>
 
-          <Card>
-            <CardHeader
-              title="Deals"
-              subtitle={`${openDeals.length} open`}
-              action={
-                <Link href="/pipeline" className="btn btn-quiet focusable">
-                  Pipeline
-                  <Icon name="chevronRight" size={13} />
-                </Link>
-              }
-            />
-            {account.deals.length === 0 ? (
-              <EmptyState title="No deals" hint="Add one from the pipeline." />
-            ) : (
-              <ul className="space-y-2.5">
-                {account.deals.map((deal) => {
-                  const stage = option(DEAL_STAGES, deal.stage);
-                  return (
-                    <li key={deal.id}>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="min-w-0 flex-1 text-[12.5px] leading-snug">
-                          {deal.title}
-                        </span>
-                        <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">
-                          <Money amount={deal.value} currency={deal.currency} compact />
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Chip tone={stage.tone}>{stage.label}</Chip>
-                        <span
-                          className="text-[11px] tabular-nums"
-                          style={{ color: "var(--text-faint)" }}
-                        >
-                          {deal.probability}% · {formatDate(deal.expectedCloseDate)}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
+          {canView && (
+            <Card>
+              <CardHeader
+                title="Deals"
+                subtitle={`${openDeals.length} open`}
+                action={
+                  <Link href="/pipeline" className="btn btn-quiet focusable">
+                    Pipeline
+                    <Icon name="chevronRight" size={13} />
+                  </Link>
+                }
+              />
+              {account.deals.length === 0 ? (
+                <EmptyState title="No deals" hint="Add one from the pipeline." />
+              ) : (
+                <ul className="space-y-2.5">
+                  {account.deals.map((deal) => {
+                    const stage = option(DEAL_STAGES, deal.stage);
+                    return (
+                      <li key={deal.id}>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="min-w-0 flex-1 text-[12.5px] leading-snug">
+                            {deal.title}
+                          </span>
+                          <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">
+                            <Money amount={deal.value} currency={deal.currency} compact />
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <Chip tone={stage.tone}>{stage.label}</Chip>
+                          <span
+                            className="text-[11px] tabular-nums"
+                            style={{ color: "var(--text-faint)" }}
+                          >
+                            {deal.probability}% · {formatDate(deal.expectedCloseDate)}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
+          )}
 
           <Card>
             <CardHeader

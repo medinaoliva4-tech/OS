@@ -55,3 +55,12 @@ export function atLeast(role: string, minimum: Role): boolean {
   const r = RANK[role as Role] ?? 0;
   return r >= RANK[minimum];
 }
+
+/**
+ * Financial data — MRR, revenue, deal values, weighted pipeline, the whole
+ * Pipeline screen — is restricted to ADMIN and OWNER. MEMBER sees everything
+ * else in the OS (brands, tasks, content, guidelines) but never money.
+ */
+export function canViewFinancials(role: string): boolean {
+  return atLeast(role, "ADMIN");
+}

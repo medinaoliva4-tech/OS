@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { updateAccount } from "@/app/actions/accounts";
+import { requireUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AccountForm } from "../../AccountForm";
 
@@ -25,6 +27,7 @@ export default async function EditAccountPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const user = await requireUser();
 
   const [account, members] = await Promise.all([
     db.account.findUnique({ where: { slug } }),
@@ -46,6 +49,7 @@ export default async function EditAccountPage({
         members={members}
         submitLabel="Save changes"
         cancelHref={`/accounts/${account.slug}`}
+        canEditFinancials={canViewFinancials(user.role)}
       />
     </div>
   );

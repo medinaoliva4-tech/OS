@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { createAccount } from "@/app/actions/accounts";
+import { requireUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AccountForm } from "../AccountForm";
 
@@ -7,6 +9,7 @@ export const metadata = { title: "New brand" };
 export const dynamic = "force-dynamic";
 
 export default async function NewAccountPage() {
+  const user = await requireUser();
   const members = await db.user.findMany({
     where: { active: true },
     select: { id: true, name: true },
@@ -25,6 +28,7 @@ export default async function NewAccountPage() {
         members={members}
         submitLabel="Create brand"
         cancelHref="/accounts"
+        canEditFinancials={canViewFinancials(user.role)}
       />
     </div>
   );

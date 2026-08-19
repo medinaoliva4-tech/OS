@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { weighted } from "@/lib/queries";
 import { DEAL_STAGES } from "@/lib/domain";
+import { requireUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, Stat } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -12,6 +15,9 @@ export const metadata = { title: "Pipeline" };
 export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
+  const user = await requireUser();
+  if (!canViewFinancials(user.role)) redirect("/");
+
   const [deals, accounts] = await Promise.all([
     db.deal.findMany({
       include: {

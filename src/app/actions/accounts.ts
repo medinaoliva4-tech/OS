@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { logActivity } from "@/lib/activity";
 import { swatchFor } from "@/lib/brand";
 import { CONTENT_PIPELINE, GUIDELINE_SECTIONS } from "@/lib/pipeline-blueprint";
@@ -48,7 +49,11 @@ export async function createAccount(formData: FormData) {
     suffix += 1;
   }
 
-  const mrr = Number(formData.get("mrr") ?? 0);
+  // Ignored outright for a viewer without financial access — never trust a
+  // hidden-field or crafted request to set MRR just because the form field
+  // wasn't rendered for them.
+  const canSetMrr = canViewFinancials(user.role);
+  const mrr = canSetMrr ? Number(formData.get("mrr") ?? 0) : 0;
 
   const account = await db.account.create({
     data: {
@@ -111,6 +116,10 @@ export async function updateAccount(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
+  // Same rule as create: a viewer without financial access can never move
+  // MRR, no matter what the request contains — `undefined` tells Prisma to
+  // leave the field exactly as it is.
+  const canSetMrr = canViewFinancials(user.role);
   const mrr = Number(formData.get("mrr") ?? 0);
 
   const account = await db.account.update({
@@ -124,7 +133,11 @@ export async function updateAccount(formData: FormData) {
       summary: String(formData.get("summary") ?? "").trim() || null,
       brandHex: String(formData.get("brandHex") ?? "#5EEAD4"),
       logoUrl: sanitizeLogo(String(formData.get("logoUrl") ?? "")),
-      mrr: Number.isFinite(mrr) ? Math.max(0, Math.round(mrr)) : 0,
+      mrr: canSetMrr
+        ? Number.isFinite(mrr)
+          ? Math.max(0, Math.round(mrr))
+          : 0
+        : undefined,
       githubRepo: String(formData.get("githubRepo") ?? "").trim() || null,
       githubPath: String(formData.get("githubPath") ?? "").trim() || null,
       driveFolderUrl: String(formData.get("driveFolderUrl") ?? "").trim() || null,

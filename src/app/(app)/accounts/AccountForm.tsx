@@ -47,12 +47,15 @@ export function AccountForm({
   members,
   submitLabel,
   cancelHref,
+  canEditFinancials = true,
 }: {
   action: (formData: FormData) => Promise<void>;
   values?: AccountFormValues;
   members: { id: string; name: string }[];
   submitLabel: string;
   cancelHref: string;
+  /** Hides the MRR field. The server action ignores it either way. */
+  canEditFinancials?: boolean;
 }) {
   const [brandHex, setBrandHex] = useState(
     values.brandHex ?? BRAND_SWATCHES[0],
@@ -224,20 +227,22 @@ export function AccountForm({
             </select>
           </div>
 
-          <div>
-            <label htmlFor="mrr" className="label mb-1.5 block">
-              MRR (USD)
-            </label>
-            <input
-              id="mrr"
-              name="mrr"
-              type="number"
-              min={0}
-              step={100}
-              defaultValue={values.mrr ?? 0}
-              className="field"
-            />
-          </div>
+          {canEditFinancials && (
+            <div>
+              <label htmlFor="mrr" className="label mb-1.5 block">
+                MRR (USD)
+              </label>
+              <input
+                id="mrr"
+                name="mrr"
+                type="number"
+                min={0}
+                step={100}
+                defaultValue={values.mrr ?? 0}
+                className="field"
+              />
+            </div>
+          )}
 
           <div className="sm:col-span-2">
             <label htmlFor="ownerId" className="label mb-1.5 block">

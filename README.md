@@ -36,7 +36,7 @@ Two accounts are created by the seed:
 | Person | Email | Role |
 | --- | --- | --- |
 | Rodrigo Medina | `rodrigomedina@inherentglobal.com` | Owner (CEO) |
-| Pablo Rodriguez | `pablorodriguez@inherentglobal.com` | Admin |
+| Pablo Rodriguez | `pablorodriguez@inherentglobal.com` | Member (no financial data) |
 
 Both start with the password in `SEED_PASSWORD` (default `Inherent2026!`).
 **Change them from Settings after the first sign-in.**

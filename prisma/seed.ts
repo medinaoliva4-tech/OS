@@ -38,7 +38,8 @@ async function seedUsers() {
       email: "pablorodriguez@inherentglobal.com",
       name: "Pablo Rodriguez",
       title: "Founder & Operations",
-      role: "ADMIN",
+      // MEMBER: no financial access (MRR, deal values, weighted pipeline).
+      role: "MEMBER",
       avatarHue: 152,
     },
   ];
