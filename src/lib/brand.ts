@@ -1,17 +1,19 @@
 /**
  * Inherent Global — brand tokens.
  *
- * ---------------------------------------------------------------------------
- * SWAP POINT. This file is the single source of truth for the brand, and it is
- * the only file you need to touch to make the OS match inherentglobal.com
- * exactly. The palette below is an interpretation, not a scrape: the live site
- * was not reachable from the build environment, so these are placeholders
- * chosen to be quiet and premium.
+ * These are the REAL brand values, taken from the official brand sheet
+ * ("LOGO VERSIONS", Group 58). The five colours below are the exact hexes
+ * sampled from that artwork:
  *
- * To make it exact: replace the hex values in `palette`, drop the real
- * wordmark into `public/`, and point `logo.src` at it. Nothing else in the
- * codebase hardcodes a brand colour.
- * ---------------------------------------------------------------------------
+ *   #232323  charcoal      the dark ground the logo is shown on
+ *   #E3DDD1  cream         the light surface, and the logo colour on dark
+ *   #372905  deep olive    the darkest brand swatch
+ *   #60563E  muted olive   the mid brand swatch
+ *   #D9D9D9  paper grey    the sheet's own neutral ground
+ *
+ * The UI scales derived from them live in `src/app/globals.css`. This file is
+ * still the single place to change the brand: update these values, mirror them
+ * in the `@theme` block there, and nothing else in the codebase needs touching.
  */
 
 export const brand = {
@@ -21,66 +23,83 @@ export const brand = {
   domain: "inherentglobal.com",
   tagline: "The operating system for how we build brands.",
 
-  logo: {
-    /** Set to a file in /public to replace the drawn mark, e.g. "/logo.svg". */
-    src: null as string | null,
-    alt: "Inherent Global",
-  },
-
+  /** Exact swatches from the brand sheet. */
   palette: {
-    /** Near-black canvas — the ground everything sits on. */
-    ink: "#0B0C0E",
-    inkRaised: "#131519",
-    inkOverlay: "#191C21",
-    line: "#24282F",
-    lineStrong: "#333944",
-
-    /** Warm off-white, not pure white — easier to read on dark. */
-    paper: "#F4F3F1",
-    paperMuted: "#A3A8B2",
-    paperFaint: "#6B717C",
-
-    /** Signal accent. */
-    accent: "#8B8FF5",
-    accentSoft: "#A9ADF8",
-    accentDeep: "#5B60E0",
-
-    success: "#4ADE80",
-    warn: "#FBBF24",
-    danger: "#F87171",
-    info: "#60A5FA",
-    progress: "#C084FC",
+    charcoal: "#232323",
+    cream: "#E3DDD1",
+    deepOlive: "#372905",
+    mutedOlive: "#60563E",
+    paperGrey: "#D9D9D9",
   },
 
-  /** Light-mode counterparts. Same roles, inverted ground. */
+  /** Dark is the brand's home — the sheet leads with cream on charcoal. */
+  dark: {
+    ink: "#1C1C1C",
+    inkRaised: "#232323",
+    inkOverlay: "#2A2A29",
+    line: "#34322C",
+    lineStrong: "#47443C",
+
+    paper: "#E3DDD1",
+    paperMuted: "#A9A395",
+    paperFaint: "#7B7668",
+
+    /** A lightened member of the olive family, legible on charcoal. */
+    accent: "#BFB18A",
+    accentSoft: "#D3C7A4",
+    accentDeep: "#60563E",
+  },
+
   light: {
-    ink: "#FBFBFA",
-    inkRaised: "#FFFFFF",
-    inkOverlay: "#F4F4F2",
-    line: "#E4E4E0",
-    lineStrong: "#CFCFC9",
-    paper: "#14161A",
-    paperMuted: "#5A606B",
-    paperFaint: "#868C97",
+    ink: "#EDEAE3",
+    inkRaised: "#F7F5F0",
+    inkOverlay: "#E3DDD1",
+    line: "#D5CFC0",
+    lineStrong: "#BDB6A4",
+
+    paper: "#232323",
+    paperMuted: "#5C5748",
+    paperFaint: "#857F6F",
+
+    /** On cream, the muted olive is used at full strength. */
+    accent: "#60563E",
+    accentSoft: "#372905",
+  },
+
+  /**
+   * Status colours, warmed to sit with the earthy palette while staying
+   * distinguishable from one another at chip size.
+   */
+  status: {
+    success: "#8FA76B",
+    warn: "#D9A441",
+    danger: "#C96A5A",
+    info: "#7E9BB5",
+    progress: "#9B8AA8",
   },
 
   font: {
-    /** Google Fonts families loaded in the root layout. */
+    /** The wordmark is a high-contrast serif; body copy stays a clean sans. */
     sans: "Inter",
+    serif: "Instrument Serif",
     mono: "JetBrains Mono",
   },
 } as const;
 
-/** Deterministic accent per brand chip when an account has no colour set. */
+/**
+ * Palette for CLIENT brand chips (NAO, Akai, …). These are the clients' own
+ * colours, deliberately not Inherent's — a brand should look like itself in
+ * the OS. Each brand can override with its own hex.
+ */
 export const BRAND_SWATCHES = [
-  "#8B8FF5",
-  "#4ADE80",
-  "#FBBF24",
-  "#F87171",
-  "#60A5FA",
-  "#C084FC",
+  "#5EEAD4",
+  "#F59E0B",
+  "#8FA76B",
+  "#C96A5A",
+  "#7E9BB5",
+  "#9B8AA8",
   "#2DD4BF",
-  "#FB923C",
+  "#BFB18A",
 ] as const;
 
 export function swatchFor(seed: string): string {

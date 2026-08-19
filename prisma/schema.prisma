@@ -81,7 +81,10 @@ model Account {
   website  String?
   summary  String?
   /// Hex accent for the brand chip across the OS.
-  brandHex String  @default("#8B8FF5")
+  brandHex String  @default("#5EEAD4")
+  /// The client's own logo. Either a data URI (uploaded during onboarding) or
+  /// an https URL. Falls back to the initials tile when empty.
+  logoUrl  String?
 
   // Retainer economics
   mrr      Int    @default(0) // stored in whole currency units

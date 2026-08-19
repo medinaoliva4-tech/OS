@@ -14,6 +14,7 @@ import {
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, EmptyState, Stat } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { PipelineTracker, type PipelineStep } from "./PipelineTracker";
@@ -128,16 +129,13 @@ export default async function AccountPage({
         }
         title={
           <span className="flex items-center gap-3">
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] text-sm font-bold"
-              style={{
-                background: `color-mix(in oklab, ${account.brandHex} 18%, transparent)`,
-                color: account.brandHex,
-                border: `1px solid color-mix(in oklab, ${account.brandHex} 34%, transparent)`,
-              }}
-            >
-              {account.name.slice(0, 2).toUpperCase()}
-            </span>
+            <BrandLogo
+              name={account.name}
+              hex={account.brandHex}
+              logoUrl={account.logoUrl}
+              size={40}
+              radius={10}
+            />
             {account.name}
             <Chip tone={status.tone} dot>
               {status.label}

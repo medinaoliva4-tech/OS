@@ -18,7 +18,7 @@ export default async function NewAccountPage() {
       <PageHeader
         eyebrow="Brands"
         title="Onboard a brand"
-        description="A new brand starts with the full guideline checklist and all nine content-system checkpoints already in place — no blank page."
+        description="Add the logo and colour up front so the brand looks like itself everywhere in the OS. It arrives with the full guideline checklist and all nine content-system checkpoints already in place — never a blank page."
       />
       <AccountForm
         action={createAccount}

@@ -6,6 +6,7 @@ import { ACCOUNT_STATUSES, ACCOUNT_TIERS, option } from "@/lib/domain";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, EmptyState, Meter } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 
@@ -80,16 +81,12 @@ export default async function AccountsPage() {
                 <Card className="h-full transition-colors hover:bg-[var(--bg-hover)]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] text-[13px] font-bold"
-                        style={{
-                          background: `color-mix(in oklab, ${account.brandHex} 18%, transparent)`,
-                          color: account.brandHex,
-                          border: `1px solid color-mix(in oklab, ${account.brandHex} 34%, transparent)`,
-                        }}
-                      >
-                        {account.name.slice(0, 2).toUpperCase()}
-                      </span>
+                      <BrandLogo
+                        name={account.name}
+                        hex={account.brandHex}
+                        logoUrl={account.logoUrl}
+                        size={36}
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">
                           {account.name}

@@ -7,6 +7,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Chip } from "@/components/ui/Chip";
+import {
+  InherentLockup,
+  InherentMark,
+} from "@/components/ui/brand/InherentMarks";
 import { PasswordForm } from "./PasswordForm";
 
 export const metadata = { title: "Settings" };
@@ -124,37 +128,65 @@ export default async function SettingsPage() {
         <Card>
           <CardHeader
             title="Brand"
-            subtitle="One file is the source of truth for the whole look."
+            subtitle="Taken from the official brand sheet. One file is the source of truth."
           />
           <p
             className="mb-4 text-[12.5px] leading-relaxed"
             style={{ color: "var(--text-muted)" }}
           >
-            The palette below is an interpretation, not a scrape —{" "}
-            <strong>{brand.domain}</strong> was not reachable from the build
-            environment. To make the OS match the real brand exactly, replace
-            the hex values in{" "}
-            <code className="font-mono text-[11.5px]">src/lib/brand.ts</code>{" "}
-            and mirror them in{" "}
-            <code className="font-mono text-[11.5px]">src/app/globals.css</code>
-            . Drop a wordmark into{" "}
-            <code className="font-mono text-[11.5px]">public/</code> and point{" "}
-            <code className="font-mono text-[11.5px]">brand.logo.src</code> at
-            it. Nothing else hardcodes a colour.
+            These are the exact swatches from the Inherent brand sheet, and the
+            logo is the real vector artwork — not a redraw. To change any of it,
+            edit{" "}
+            <code className="font-mono text-[11.5px]">src/lib/brand.ts</code> and
+            mirror the values in the{" "}
+            <code className="font-mono text-[11.5px]">@theme</code> block of{" "}
+            <code className="font-mono text-[11.5px]">src/app/globals.css</code>.
+            Nothing else in the codebase hardcodes a colour.
           </p>
 
-          <div className="flex flex-wrap gap-2">
+          <p className="label mb-2">Brand swatches</p>
+          <div className="mb-5 flex flex-wrap gap-3">
             {Object.entries(brand.palette).map(([name, hex]) => (
               <div key={name} className="flex items-center gap-2">
                 <span
-                  className="h-6 w-6 rounded-[6px] border"
+                  className="h-7 w-7 rounded-[7px] border"
                   style={{ background: hex, borderColor: "var(--line-strong)" }}
                 />
-                <span className="font-mono text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-                  {name}
+                <span className="leading-tight">
+                  <span className="block text-[11.5px] font-medium capitalize">
+                    {name.replace(/([A-Z])/g, " $1")}
+                  </span>
+                  <span
+                    className="block font-mono text-[10px]"
+                    style={{ color: "var(--text-faint)" }}
+                  >
+                    {hex}
+                  </span>
                 </span>
               </div>
             ))}
+          </div>
+
+          <p className="label mb-2">Logo</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className="flex items-center justify-center rounded-[10px] px-5 py-4"
+              style={{ background: brand.palette.charcoal, color: brand.palette.cream }}
+            >
+              <InherentLockup height={22} />
+            </span>
+            <span
+              className="flex items-center justify-center rounded-[10px] px-5 py-4"
+              style={{ background: brand.palette.cream, color: brand.palette.deepOlive }}
+            >
+              <InherentLockup height={22} />
+            </span>
+            <span
+              className="flex items-center justify-center rounded-[10px] px-4 py-4"
+              style={{ background: brand.palette.mutedOlive, color: brand.palette.cream }}
+            >
+              <InherentMark size={26} />
+            </span>
           </div>
         </Card>
 

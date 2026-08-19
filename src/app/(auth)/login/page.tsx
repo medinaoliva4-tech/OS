@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/policy";
 import { brand } from "@/lib/brand";
-import { LogoMark } from "@/components/ui/Logo";
+import { InherentLockup } from "@/components/ui/brand/InherentMarks";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -36,11 +36,14 @@ export default async function LoginPage() {
 
       <div className="animate-in relative w-full max-w-[380px]">
         <div className="mb-7 flex flex-col items-center text-center">
-          <LogoMark size={40} />
-          <h1 className="mt-4 text-lg font-semibold tracking-tight">
-            {brand.productName}
+          <InherentLockup height={34} />
+          <h1
+            className="mt-4 text-[11px] font-semibold tracking-[0.2em] uppercase"
+            style={{ color: "var(--text-faint)" }}
+          >
+            Operating System
           </h1>
-          <p className="mt-1 text-[13px]" style={{ color: "var(--text-muted)" }}>
+          <p className="mt-3 text-[13px]" style={{ color: "var(--text-muted)" }}>
             {brand.tagline}
           </p>
         </div>

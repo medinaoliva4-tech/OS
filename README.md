@@ -100,22 +100,41 @@ place — onboarding is never a blank page.
 
 ## Brand
 
-`src/lib/brand.ts` is the single source of truth for the look, and it is the
-only file you need to touch to make the OS match inherentglobal.com exactly.
+`src/lib/brand.ts` is the single source of truth for the look. The values in it
+are the **real brand**, taken from the official brand sheet (LOGO VERSIONS,
+Group 58):
 
-> **The palette shipped here is an interpretation, not a scrape.** The live site
-> was unreachable from the build environment, so the values are placeholders
-> chosen to be quiet and premium.
+| Swatch | Hex | Used as |
+| --- | --- | --- |
+| Charcoal | `#232323` | the dark ground, and raised surfaces |
+| Cream | `#E3DDD1` | body text on dark, and the light surface |
+| Deep olive | `#372905` | the darkest brand tone; accent hover in light mode |
+| Muted olive | `#60563E` | the accent in light mode |
+| Paper grey | `#D9D9D9` | the sheet's own neutral |
 
-To make it exact:
+Dark mode is the brand's home — the sheet leads with cream on charcoal — and
+light mode is the cream side of the same system. The accent on dark is a
+lightened member of the olive family (`#BFB18A`) so it stays legible on
+charcoal; status colours are warmed to sit with the earthy palette while
+staying distinguishable at chip size.
 
-1. Replace the hex values in `src/lib/brand.ts`.
-2. Mirror them in the `@theme` block of `src/app/globals.css`.
-3. Drop the real wordmark into `public/` and point `brand.logo.src` at it.
+The logo is the **real vector artwork**, extracted from the brand sheet into
+`src/components/ui/brand/InherentMarks.tsx` — not a redraw. Both the logomark
+and the horizontal lockup inherit `currentColor`, so they render cream on
+charcoal and charcoal on cream, exactly as the sheet specifies. The wordmark's
+high-contrast serif (Instrument Serif) is used for page titles.
 
-Nothing else in the codebase hardcodes a brand colour.
+To change any of it: edit `src/lib/brand.ts` and mirror the values in the
+`@theme` block of `src/app/globals.css`. Nothing else hardcodes a colour.
 
----
+### Client brand logos
+
+Each client brand carries its own logo and colour, set during onboarding
+(**Brands → New brand**) or later from the brand's Edit screen. The file is
+read in the browser and stored as a data URI, so there is no upload endpoint or
+object storage to configure — SVG, PNG, JPG or WebP up to 512KB. A brand
+without a logo falls back to an initials tile in its own colour, so the OS
+never looks broken while you are still collecting assets.
 
 ## Stack
 
@@ -130,16 +149,43 @@ Nothing else in the codebase hardcodes a brand colour.
 No auth provider, no component library, no state manager. Mutations are Server
 Actions; every one writes to an append-only activity feed.
 
-### Going to production
+### Deploying
 
-1. **Set `AUTH_SECRET`** to a real random value —
-   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
-   Settings warns while it is still the development default.
-2. **Move off SQLite** — change `provider` to `postgresql` in
-   `prisma/schema.prisma` and point `DATABASE_URL` at your database.
-3. **Change both seeded passwords.**
+**Before anything else**, set a real `AUTH_SECRET`:
 
----
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+The container refuses to start on a placeholder value, and Settings warns while
+the local one is still the development default.
+
+#### Docker (self-hosted)
+
+```bash
+AUTH_SECRET=<the value you just generated> docker compose up -d --build
+```
+
+That is the whole thing. The image carries its own SQLite database on a named
+volume, so there is nothing to provision. On first boot the entrypoint creates
+the schema and seeds the founding team; on every later boot it applies schema
+changes and leaves your data alone.
+
+#### Vercel
+
+Next.js deploys to Vercel with no config, but **SQLite does not survive a
+serverless filesystem** — move to Postgres first:
+
+1. Change `provider` to `postgresql` in `prisma/schema.prisma`.
+2. Set `DATABASE_URL` to your Postgres connection string in the Vercel project.
+3. Set `AUTH_SECRET`, and any integration credentials you want live.
+4. Run `npx prisma db push && npx tsx prisma/seed.ts` against that database once.
+
+#### Any Node host
+
+`npm ci && npm run build && npm run start`, with `DATABASE_URL` and
+`AUTH_SECRET` set. `output: "standalone"` is enabled, so `.next/standalone`
+also works as a minimal self-contained bundle.
 
 ## Commands
 

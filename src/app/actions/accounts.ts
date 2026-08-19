@@ -18,6 +18,21 @@ function slugify(value: string): string {
     .slice(0, 48);
 }
 
+/** Accept only an inline image or an https URL — never arbitrary markup. */
+const MAX_LOGO_BYTES = 512 * 1024;
+
+function sanitizeLogo(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  if (value.length > MAX_LOGO_BYTES * 1.4) return null;
+
+  if (/^data:image\/(svg\+xml|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)) {
+    return value;
+  }
+  if (/^https:\/\/[^\s"'<>]+$/i.test(value)) return value;
+  return null;
+}
+
 export async function createAccount(formData: FormData) {
   const user = await requireUser();
 
@@ -46,6 +61,7 @@ export async function createAccount(formData: FormData) {
       website: String(formData.get("website") ?? "").trim() || null,
       summary: String(formData.get("summary") ?? "").trim() || null,
       brandHex: String(formData.get("brandHex") ?? "") || swatchFor(slug),
+      logoUrl: sanitizeLogo(String(formData.get("logoUrl") ?? "")),
       mrr: Number.isFinite(mrr) ? Math.max(0, Math.round(mrr)) : 0,
       githubRepo: String(formData.get("githubRepo") ?? "").trim() || null,
       driveFolderUrl: String(formData.get("driveFolderUrl") ?? "").trim() || null,
@@ -106,7 +122,8 @@ export async function updateAccount(formData: FormData) {
       industry: String(formData.get("industry") ?? "").trim() || null,
       website: String(formData.get("website") ?? "").trim() || null,
       summary: String(formData.get("summary") ?? "").trim() || null,
-      brandHex: String(formData.get("brandHex") ?? "#8B8FF5"),
+      brandHex: String(formData.get("brandHex") ?? "#5EEAD4"),
+      logoUrl: sanitizeLogo(String(formData.get("logoUrl") ?? "")),
       mrr: Number.isFinite(mrr) ? Math.max(0, Math.round(mrr)) : 0,
       githubRepo: String(formData.get("githubRepo") ?? "").trim() || null,
       githubPath: String(formData.get("githubPath") ?? "").trim() || null,

@@ -1,0 +1,34 @@
+# Inherent OS — one command to run it anywhere Docker runs.
+#
+#   AUTH_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
+#     docker compose up -d --build
+#
+# Then open http://localhost:3000 and sign in with a seeded account.
+
+services:
+  os:
+    build: .
+    image: inherent-os:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Required. The container refuses to boot without a real value.
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET before starting}
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-inherentglobal.com}
+      SEED_PASSWORD: ${SEED_PASSWORD:-Inherent2026!}
+      # Optional integration credentials — Connections reads these live.
+      GITHUB_ORG: ${GITHUB_ORG:-medinaoliva4-tech}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GOOGLE_DRIVE_ROOT_FOLDER_ID: ${GOOGLE_DRIVE_ROOT_FOLDER_ID:-}
+      JOCKEY_API_KEY: ${JOCKEY_API_KEY:-}
+      HIGGSFIELD_API_KEY: ${HIGGSFIELD_API_KEY:-}
+      ZAPIER_WEBHOOK_URL: ${ZAPIER_WEBHOOK_URL:-}
+      FIGMA_TOKEN: ${FIGMA_TOKEN:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    volumes:
+      # The database survives rebuilds and restarts.
+      - os-data:/app/data
+
+volumes:
+  os-data:

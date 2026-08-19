@@ -7,29 +7,40 @@
 --------------------------------------------------------------------------- */
 
 @theme {
-  --color-ink: #0b0c0e;
-  --color-ink-raised: #131519;
-  --color-ink-overlay: #191c21;
-  --color-line: #24282f;
-  --color-line-strong: #333944;
+  /* Exact swatches from the Inherent brand sheet. */
+  --color-charcoal: #232323;
+  --color-cream: #e3ddd1;
+  --color-deep-olive: #372905;
+  --color-muted-olive: #60563e;
+  --color-paper-grey: #d9d9d9;
 
-  --color-paper: #f4f3f1;
-  --color-paper-muted: #a3a8b2;
-  --color-paper-faint: #6b717c;
+  --color-ink: #1c1c1c;
+  --color-ink-raised: #232323;
+  --color-ink-overlay: #2a2a29;
+  --color-line: #34322c;
+  --color-line-strong: #47443c;
 
-  --color-accent: #8b8ff5;
-  --color-accent-soft: #a9adf8;
-  --color-accent-deep: #5b60e0;
+  --color-paper: #e3ddd1;
+  --color-paper-muted: #a9a395;
+  --color-paper-faint: #7b7668;
 
-  --color-ok: #4ade80;
-  --color-warn: #fbbf24;
-  --color-danger: #f87171;
-  --color-info: #60a5fa;
-  --color-progress: #c084fc;
+  --color-accent: #bfb18a;
+  --color-accent-soft: #d3c7a4;
+  --color-accent-deep: #60563e;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Status colours, warmed to sit with the earthy palette. */
+  --color-ok: #8fa76b;
+  --color-warn: #d9a441;
+  --color-danger: #c96a5a;
+  --color-info: #7e9bb5;
+  --color-progress: #9b8aa8;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia,
+    "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo,
+    monospace;
 
   --radius-card: 14px;
 }
@@ -37,37 +48,39 @@
 :root {
   color-scheme: dark;
 
-  --bg: #0b0c0e;
-  --bg-raised: #131519;
-  --bg-overlay: #191c21;
-  --bg-hover: #1e2228;
-  --line: #24282f;
-  --line-strong: #333944;
-  --text: #f4f3f1;
-  --text-muted: #a3a8b2;
-  --text-faint: #6b717c;
-  --accent: #8b8ff5;
-  --accent-soft: #a9adf8;
-  --accent-ink: #0b0c0e;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  /* Dark is the brand's home: the sheet leads with cream on charcoal. */
+  --bg: #1c1c1c;
+  --bg-raised: #232323;
+  --bg-overlay: #2a2a29;
+  --bg-hover: #333330;
+  --line: #34322c;
+  --line-strong: #47443c;
+  --text: #e3ddd1;
+  --text-muted: #a9a395;
+  --text-faint: #7b7668;
+  --accent: #bfb18a;
+  --accent-soft: #d3c7a4;
+  --accent-ink: #232323;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45), 0 8px 24px -12px rgb(0 0 0 / 0.65);
 }
 
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg: #fbfbfa;
-  --bg-raised: #ffffff;
-  --bg-overlay: #f4f4f2;
-  --bg-hover: #efefec;
-  --line: #e4e4e0;
-  --line-strong: #cfcfc9;
-  --text: #14161a;
-  --text-muted: #5a606b;
-  --text-faint: #868c97;
-  --accent: #5b60e0;
-  --accent-soft: #4348c9;
-  --accent-ink: #ffffff;
-  --shadow-card: 0 1px 2px rgb(16 18 22 / 0.05), 0 8px 24px -16px rgb(16 18 22 / 0.18);
+  /* Light mode is the cream side of the sheet, with olive as the accent. */
+  --bg: #edeae3;
+  --bg-raised: #f7f5f0;
+  --bg-overlay: #e3ddd1;
+  --bg-hover: #ded8cb;
+  --line: #d5cfc0;
+  --line-strong: #bdb6a4;
+  --text: #232323;
+  --text-muted: #5c5748;
+  --text-faint: #857f6f;
+  --accent: #60563e;
+  --accent-soft: #372905;
+  --accent-ink: #f7f5f0;
+  --shadow-card: 0 1px 2px rgb(35 35 35 / 0.06), 0 8px 24px -16px rgb(35 35 35 / 0.2);
 }
 
 * {
@@ -226,6 +239,12 @@ body {
     letter-spacing: 0.01em;
     white-space: nowrap;
     border: 1px solid transparent;
+  }
+
+  .display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
 
   .label {

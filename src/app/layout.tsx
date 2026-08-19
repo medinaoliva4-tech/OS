@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { brand } from "@/lib/brand";
 import { ThemeScript } from "@/components/shell/ThemeToggle";
 import "./globals.css";
@@ -7,6 +7,14 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+// The wordmark is a high-contrast serif; page titles echo it.
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-instrument-serif",
   display: "swap",
 });
 
@@ -27,7 +35,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: brand.palette.ink },
+    { media: "(prefers-color-scheme: dark)", color: brand.dark.ink },
     { media: "(prefers-color-scheme: light)", color: brand.light.ink },
   ],
 };
@@ -42,7 +50,9 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className={`${inter.variable} ${jetbrains.variable}`}>
+      <body
+        className={`${inter.variable} ${instrumentSerif.variable} ${jetbrains.variable}`}
+      >
         {children}
       </body>
     </html>

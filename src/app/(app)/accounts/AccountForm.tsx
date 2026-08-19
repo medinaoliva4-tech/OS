@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/domain";
 import { BRAND_SWATCHES } from "@/lib/brand";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { LogoField } from "./LogoField";
 
 export type AccountFormValues = {
   id?: string;
@@ -21,6 +22,7 @@ export type AccountFormValues = {
   website?: string | null;
   summary?: string | null;
   brandHex?: string;
+  logoUrl?: string | null;
   mrr?: number;
   githubRepo?: string | null;
   githubPath?: string | null;
@@ -52,6 +54,11 @@ export function AccountForm({
   submitLabel: string;
   cancelHref: string;
 }) {
+  const [brandHex, setBrandHex] = useState(
+    values.brandHex ?? BRAND_SWATCHES[0],
+  );
+  const [name, setName] = useState(values.name ?? "");
+
   return (
     <form action={action} className="space-y-5">
       {values.id && <input type="hidden" name="id" value={values.id} />}
@@ -67,7 +74,8 @@ export function AccountForm({
               id="name"
               name="name"
               required
-              defaultValue={values.name}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
               placeholder="NAO"
               className="field"
             />
@@ -128,7 +136,8 @@ export function AccountForm({
                     type="radio"
                     name="brandHex"
                     value={hex}
-                    defaultChecked={(values.brandHex ?? BRAND_SWATCHES[0]) === hex}
+                    checked={brandHex === hex}
+                    onChange={() => setBrandHex(hex)}
                     className="peer sr-only"
                   />
                   <span
@@ -146,6 +155,15 @@ export function AccountForm({
               ))}
             </div>
           </fieldset>
+
+          <div className="sm:col-span-2">
+            <LogoField
+              name="logoUrl"
+              brandHex={brandHex}
+              brandName={name}
+              defaultValue={values.logoUrl}
+            />
+          </div>
         </div>
       </Card>
 
