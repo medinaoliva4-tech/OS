@@ -53,15 +53,31 @@ jobs:
       # A published image that does not boot is worse than no image.
       - name: It must refuse a placeholder secret
         run: |
-          if docker run --rm -e AUTH_SECRET=dev-only-secret-change-me inherent-os:ci true; then
+          if docker run --rm \
+            -e AUTH_SECRET=dev-only-secret-change-me \
+            -e DATABASE_URL=postgresql://x:y@localhost:5432/z \
+            inherent-os:ci true; then
             echo "Container booted with a placeholder AUTH_SECRET"; exit 1
           fi
           echo "Correctly refused."
 
-      - name: It must boot, seed and serve
+      - name: Start a Postgres for the smoke test
         run: |
-          docker run -d --name os -p 3000:3000 \
+          docker network create osnet
+          docker run -d --name db --network osnet \
+            -e POSTGRES_USER=inherent -e POSTGRES_PASSWORD=inherent \
+            -e POSTGRES_DB=inherent_os postgres:16-alpine
+          for i in $(seq 1 30); do
+            docker exec db pg_isready -U inherent -d inherent_os && break
+            sleep 2
+          done
+
+      - name: It must migrate, seed and serve
+        run: |
+          docker run -d --name os --network osnet -p 3000:3000 \
             -e AUTH_SECRET="$(openssl rand -hex 32)" \
+            -e DATABASE_URL="postgresql://inherent:inherent@db:5432/inherent_os" \
+            -e DIRECT_URL="postgresql://inherent:inherent@db:5432/inherent_os" \
             inherent-os:ci
           for i in $(seq 1 60); do
             if curl -fsS -o /dev/null http://localhost:3000/login; then
@@ -81,7 +97,17 @@ jobs:
         run: |
           curl -fsS http://localhost:3000/login | grep -q "inherentglobal.com" \
             || { echo "Domain lock not shown"; docker logs os; exit 1; }
-          docker rm -f os
+
+      - name: A restart must not reseed
+        run: |
+          docker restart os
+          for i in $(seq 1 40); do
+            curl -fsS -o /dev/null http://localhost:3000/login && break
+            sleep 2
+          done
+          docker logs os 2>&1 | grep -q "Existing data" \
+            || { echo "Restart did not detect existing data"; docker logs os; exit 1; }
+          docker rm -f os db
 
       - name: Publish
         uses: docker/build-push-action@v6

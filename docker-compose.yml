@@ -1,18 +1,42 @@
-# Inherent OS — one command to run it anywhere Docker runs.
+# Inherent OS — self-hosted, with its own Postgres.
 #
 #   AUTH_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
 #     docker compose up -d --build
 #
-# Then open http://localhost:3000 and sign in with a seeded account.
+# Then open http://localhost:3000.
+#
+# Deploying to Vercel + Supabase instead? You do not need this file — see the
+# Deploying section of the README.
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inherent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inherent}
+      POSTGRES_DB: inherent_os
+    volumes:
+      - os-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inherent -d inherent_os"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   os:
     build: .
     image: inherent-os:latest
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "${PORT:-3000}:3000"
     environment:
+      # Self-hosted Postgres needs no pooler, so both URLs are the same.
+      DATABASE_URL: postgresql://inherent:${POSTGRES_PASSWORD:-inherent}@db:5432/inherent_os
+      DIRECT_URL: postgresql://inherent:${POSTGRES_PASSWORD:-inherent}@db:5432/inherent_os
       # Required. The container refuses to boot without a real value.
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET before starting}
       ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-inherentglobal.com}
@@ -26,9 +50,6 @@ services:
       ZAPIER_WEBHOOK_URL: ${ZAPIER_WEBHOOK_URL:-}
       FIGMA_TOKEN: ${FIGMA_TOKEN:-}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
-    volumes:
-      # The database survives rebuilds and restarts.
-      - os-data:/app/data
 
 volumes:
-  os-data:
+  os-db:

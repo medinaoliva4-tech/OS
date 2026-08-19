@@ -14,47 +14,24 @@ case "${AUTH_SECRET:-}" in
     ;;
 esac
 
-if [ -z "${DATABASE_URL:-}" ]; then
-  echo "FATAL: DATABASE_URL is not set."
-  exit 1
-fi
+[ -n "${DATABASE_URL:-}" ] || { echo "FATAL: DATABASE_URL is not set."; exit 1; }
+# Migrations need the unpooled connection; fall back when they are the same.
+export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
 
-# ---------------------------------------------------------------------------
-# Provision the database. The "is this the first boot?" test is derived from
-# DATABASE_URL rather than hardcoded, so pointing the app at a different file
-# — or at Postgres — still behaves correctly.
-# ---------------------------------------------------------------------------
-needs_seed=0
+echo "Applying migrations."
+npx prisma migrate deploy
 
-case "$DATABASE_URL" in
-  file:*)
-    db_path=$(printf '%s' "$DATABASE_URL" | sed 's|^file:||')
-    # Relative sqlite paths resolve against prisma/, matching the Prisma CLI.
-    case "$db_path" in
-      /*) ;;
-      *) db_path="/app/prisma/$db_path" ;;
-    esac
-    mkdir -p "$(dirname "$db_path")"
-    [ -f "$db_path" ] || needs_seed=1
-    ;;
-  *)
-    # A remote database: seed only when the schema has not been created yet.
-    if ! npx prisma db execute --stdin >/dev/null 2>&1 <<'SQL'
-SELECT 1 FROM "User" LIMIT 1;
-SQL
-    then
-      needs_seed=1
-    fi
-    ;;
+# Seed only an empty database. A restart must never touch existing rows, and a
+# check that fails to run must stop the boot rather than guess.
+set +e
+npx tsx scripts/is-empty.ts
+empty=$?
+set -e
+
+case "$empty" in
+  0) echo "Seeding the founding team."; npx tsx prisma/seed.ts ;;
+  1) echo "Existing data — leaving it alone." ;;
+  *) echo "FATAL: could not determine database state; refusing to start."; exit 1 ;;
 esac
-
-if [ "$needs_seed" -eq 1 ]; then
-  echo "First boot — creating the schema and seeding the founding team."
-  npx prisma db push --skip-generate --accept-data-loss
-  npx tsx prisma/seed.ts
-else
-  echo "Existing database — applying any schema changes."
-  npx prisma db push --skip-generate
-fi
 
 exec "$@"

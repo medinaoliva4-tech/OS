@@ -12,14 +12,22 @@ of scattered across six tools.
 
 ## Running it
 
+The app runs on Postgres. The quickest local database is the one in the compose
+file:
+
 ```bash
 npm install
-cp .env.example .env      # defaults work as-is for local development
-npm run setup             # generate client + create the database + seed it
-npm run dev               # http://localhost:3000
+cp .env.example .env          # then set DATABASE_URL / DIRECT_URL
+docker compose up -d db       # or point at any Postgres you already have
+npm run setup                 # migrate + seed
+npm run dev                   # http://localhost:3000
 ```
 
-`npm run setup` is safe to re-run — the seed is idempotent.
+For a plain local Postgres, `DATABASE_URL` and `DIRECT_URL` are the same value.
+They only differ when a pooler sits in front of the database — see below.
+
+`npm run setup` is safe to re-run: migrations are versioned and the seed is
+idempotent.
 
 ### Signing in
 
@@ -33,7 +41,16 @@ Two accounts are created by the seed:
 Both start with the password in `SEED_PASSWORD` (default `Inherent2026!`).
 **Change them from Settings after the first sign-in.**
 
----
+### The two connection strings
+
+Supabase gives you two, and Prisma needs both. This trips people up because
+getting it wrong fails in the least helpful way — the app works fine and
+migrations hang forever.
+
+| Variable | Port | Used by | Why |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | 6543 | the app | Serverless functions open and drop connections constantly; the pooler absorbs that. Keep `?pgbouncer=true&connection_limit=1`. |
+| `DIRECT_URL` | 5432 | migrations | DDL and advisory locks do not survive transaction-mode pooling. |
 
 ## The domain lock
 
@@ -142,61 +159,79 @@ never looks broken while you are still collecting assets.
 | --- | --- |
 | Framework | Next.js 16 (App Router, Server Actions) |
 | Language | TypeScript, strict |
-| Data | Prisma + SQLite |
+| Data | Prisma + Postgres (Supabase) |
 | Styling | Tailwind v4, CSS custom properties |
 | Auth | Custom sessions: scrypt hashing, HMAC-signed httpOnly cookies |
 
 No auth provider, no component library, no state manager. Mutations are Server
 Actions; every one writes to an append-only activity feed.
 
-### Deploying
+### Deploying — Vercel + Supabase
 
-**Before anything else**, set a real `AUTH_SECRET`:
+**1. Supabase.** In your project, open **Project Settings → Database →
+Connection string** and copy both: the **Transaction pooler** string (port
+6543) and the **Direct connection** string (port 5432).
+
+**2. Vercel.** Import the repo (**Add New → Project**). Vercel detects Next.js;
+`vercel.json` already sets the build command. Add these environment variables
+to Production *and* Preview:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | the pooled string + `?pgbouncer=true&connection_limit=1` |
+| `DIRECT_URL` | the direct string |
+| `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `ALLOWED_EMAIL_DOMAIN` | `inherentglobal.com` |
+| `SEED_PASSWORD` | a password for the first sign-in |
+
+**3. Create the schema.** Migrations do not run on Vercel — its build step has
+no business writing to your database. Run them once from your machine:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+DIRECT_URL="<the direct string>" DATABASE_URL="<the direct string>" \
+  npx prisma migrate deploy
+
+DIRECT_URL="<the direct string>" DATABASE_URL="<the direct string>" \
+  npx tsx prisma/seed.ts
 ```
 
-The container refuses to start on a placeholder value, and Settings warns while
-the local one is still the development default.
+Both use the **direct** string. Then deploy, and sign in.
 
-#### Docker (self-hosted)
+**4. Optional — deploy from CI instead.** `.github/workflows/deploy-vercel.yml`
+migrates, seeds if the database is empty, deploys, and then checks the
+sign-in page actually loads before calling it done. It needs four repository
+secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (the last two
+come from `.vercel/project.json` after `vercel link`) and `DIRECT_URL`. If you
+would rather not manage a token, Vercel's own Git integration covers steps 1–3
+with no workflow at all.
+
+### Self-hosting instead
 
 ```bash
-AUTH_SECRET=<the value you just generated> docker compose up -d --build
+AUTH_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))") \
+  docker compose up -d --build
 ```
 
-That is the whole thing. The image carries its own SQLite database on a named
-volume, so there is nothing to provision. On first boot the entrypoint creates
-the schema and seeds the founding team; on every later boot it applies schema
-changes and leaves your data alone.
-
-#### Vercel
-
-Next.js deploys to Vercel with no config, but **SQLite does not survive a
-serverless filesystem** — move to Postgres first:
-
-1. Change `provider` to `postgresql` in `prisma/schema.prisma`.
-2. Set `DATABASE_URL` to your Postgres connection string in the Vercel project.
-3. Set `AUTH_SECRET`, and any integration credentials you want live.
-4. Run `npx prisma db push && npx tsx prisma/seed.ts` against that database once.
-
-#### Any Node host
-
-`npm ci && npm run build && npm run start`, with `DATABASE_URL` and
-`AUTH_SECRET` set. `output: "standalone"` is enabled, so `.next/standalone`
-also works as a minimal self-contained bundle.
+Brings up Postgres and the app together. The entrypoint applies migrations,
+seeds only a genuinely empty database, and refuses to start on a placeholder
+`AUTH_SECRET`. A prebuilt image is published to
+`ghcr.io/medinaoliva4-tech/os:edge` on every push.
 
 ## Commands
 
 ```bash
-npm run dev         # development server
-npm run build       # production build (runs prisma generate first)
-npm run start       # serve the production build
-npm run lint        # eslint
-npm run typecheck   # tsc --noEmit
-npm run db:seed     # re-run the seed (idempotent)
-npm run db:reset    # wipe and reseed the local database
+npm run dev          # development server
+npm run build        # production build (runs prisma generate first)
+npm run start        # serve the production build
+npm run lint         # eslint
+npm run typecheck    # tsc --noEmit
+npm run setup        # migrate + seed
+npm run db:migrate   # create a migration from schema changes
+npm run db:deploy    # apply migrations (production)
+npm run db:seed      # re-run the seed (idempotent)
+npm run db:reset     # drop, re-migrate and reseed — destroys data
+npm run db:studio    # browse the data
+npm run verify:seed  # assert the seed invariants
 ```
 
 ---
@@ -206,7 +241,11 @@ npm run db:reset    # wipe and reseed the local database
 ```
 prisma/
   schema.prisma          15 models: the CRM half and the production half
+  migrations/            versioned schema history
   seed.ts                team, brands, pendientes, integrations
+scripts/
+  is-empty.ts            "does this database still need seeding?"
+  verify-seed.ts         post-seed invariants, asserted in CI
 src/
   app/
     (auth)/login         sign-in, domain-gated

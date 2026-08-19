@@ -12,12 +12,28 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, lint, build
+    name: Typecheck, lint, build, seed
     runs-on: ubuntu-latest
+
+    # A real Postgres, because that is what production is now.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inherent
+          POSTGRES_PASSWORD: inherent
+          POSTGRES_DB: inherent_os
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U inherent -d inherent_os"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
     env:
-      # Build-time only. Never a real secret — the app reads its own at runtime.
-      DATABASE_URL: file:./dev.db
+      DATABASE_URL: postgresql://inherent:inherent@localhost:5432/inherent_os
+      DIRECT_URL: postgresql://inherent:inherent@localhost:5432/inherent_os
+      # Build-time only. Never a real secret.
       AUTH_SECRET: ci-only-secret-not-used-at-runtime-0123456789
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,9 +44,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
       - name: Typecheck
         run: npm run typecheck
 
@@ -40,12 +53,29 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Seed a throwaway database
-        run: |
-          npx prisma db push --skip-generate
-          npx tsx prisma/seed.ts
+      - name: Apply migrations
+        run: npx prisma migrate deploy
 
-      - name: Re-run the seed, then assert the invariants
+      - name: The database must start out empty
         run: |
+          set +e; npx tsx scripts/is-empty.ts; code=$?; set -e
+          test "$code" = "0" || { echo "Expected exit 0 on a fresh database, got $code"; exit 1; }
+
+      - name: Seed, then seed again — it must be idempotent
+        run: |
+          npx tsx prisma/seed.ts
           npx tsx prisma/seed.ts
           npx tsx scripts/verify-seed.ts
+
+      - name: A seeded database must report itself as non-empty
+        run: |
+          set +e; npx tsx scripts/is-empty.ts; code=$?; set -e
+          test "$code" = "1" || { echo "Expected exit 1 after seeding, got $code"; exit 1; }
+
+      - name: An unreachable database must abort, never silently skip
+        env:
+          DATABASE_URL: postgresql://nobody:nope@127.0.0.1:9999/nothing
+          DIRECT_URL: postgresql://nobody:nope@127.0.0.1:9999/nothing
+        run: |
+          set +e; npx tsx scripts/is-empty.ts; code=$?; set -e
+          test "$code" = "2" || { echo "Expected exit 2 when the database is unreachable, got $code"; exit 1; }

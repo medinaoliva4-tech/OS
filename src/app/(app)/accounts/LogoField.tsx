@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Icon } from "@/components/ui/Icon";
 
-/** Kept well under SQLite comfort and Server Action body limits. */
+/** Kept well under the Server Action body limit and Postgres row comfort. */
 const MAX_BYTES = 512 * 1024;
 const ACCEPTED = ["image/svg+xml", "image/png", "image/jpeg", "image/webp"];
 

@@ -16,10 +16,21 @@ generator client {
 }
 
 datasource db {
-  // SQLite keeps the MVP self-contained: clone, `npm run setup`, done.
-  // Switch to "postgresql" and change DATABASE_URL to deploy.
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+
+  // Supabase gives two connection strings and Prisma needs both:
+  //
+  //   DATABASE_URL  the pooled one (Supavisor, port 6543). Serverless
+  //                 functions open and drop connections constantly, so every
+  //                 query the app runs goes through the pooler.
+  //   DIRECT_URL    the direct one (port 5432). Transaction-mode pooling
+  //                 cannot run DDL or advisory locks, so migrations must
+  //                 bypass it.
+  //
+  // Getting this wrong fails in the least helpful way: the app works and
+  // migrations hang.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ===========================================================================
