@@ -10,12 +10,19 @@ import { logActivity } from "@/lib/activity";
 
 export type LoginState = { error?: string; email?: string };
 
+/** Only ever redirect somewhere inside this app — "/x", never "//x" or "https://…". */
+function safeNext(raw: FormDataEntryValue | null): string {
+  const value = String(raw ?? "");
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
 export async function loginAction(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
   const rawEmail = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   // Gate on the domain before touching the database at all.
   const check = checkEmailDomain(rawEmail);
@@ -59,7 +66,7 @@ export async function loginAction(
     summary: `${user.name} signed in`,
   });
 
-  redirect("/");
+  redirect(next);
 }
 
 export async function logoutAction(): Promise<void> {

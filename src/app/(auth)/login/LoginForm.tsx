@@ -19,7 +19,7 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm({ domain }: { domain: string }) {
+export function LoginForm({ domain, next }: { domain: string; next?: string }) {
   const [state, formAction] = useActionState<LoginState, FormData>(
     loginAction,
     {},
@@ -27,6 +27,7 @@ export function LoginForm({ domain }: { domain: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-3.5">
+      {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label htmlFor="email" className="label mb-1.5 block">
           Work email

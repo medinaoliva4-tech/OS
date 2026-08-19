@@ -69,6 +69,7 @@ model User {
   services      Service[]     @relation("ServiceMembers")
   salary        Salary?
   apiTokens     ApiToken[]
+  oauthCodes    OAuthCode[]
 
   @@index([email])
 }
@@ -103,6 +104,45 @@ model Session {
 
   @@index([userId])
   @@index([token])
+}
+
+// ===========================================================================
+// OAuth (for Claude.ai / ChatGPT custom connectors — src/app/oauth/*)
+//
+// Both platforms only support OAuth 2.1 + PKCE for custom MCP connectors —
+// no bearer/API-key field in their UI — so this is the mandatory path, not
+// an alternative to the per-user ApiToken above. The token an OAuth exchange
+// hands back IS an ApiToken row underneath; these two models exist only to
+// get there: who registered as a client, and the one-time code that proves
+// a logged-in OS user approved the connection.
+// ===========================================================================
+
+/// A client that completed Dynamic Client Registration (RFC 7591). Public
+/// clients only (Claude.ai, ChatGPT) — no secret, PKCE carries the security.
+model OAuthClient {
+  id           String   @id @default(cuid())
+  name         String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+}
+
+/// A short-lived authorization code from the PKCE flow. Single-use, minutes
+/// not days — by the time /oauth/token consumes it, an ApiToken already
+/// exists and this row is disposable.
+model OAuthCode {
+  id                  String    @id @default(cuid())
+  code                String    @unique
+  clientId            String
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redirectUri         String
+  codeChallenge       String
+  codeChallengeMethod String    @default("S256")
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // ===========================================================================

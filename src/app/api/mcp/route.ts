@@ -6,17 +6,20 @@
  * server (mcp/server.ts, mcp/tools.ts), since neither of those clients can
  * spawn a subprocess: they need a URL.
  *
- * Auth: per-user personal access tokens (ApiToken, minted from Settings →
- * API tokens), plus MCP_CONNECTOR_TOKEN as a single fallback shared secret
- * for anyone who hasn't set one up. Either travels as
- * `Authorization: Bearer <token>` or as a `?token=<token>` query param.
+ * Auth: a bearer token, checked against ApiToken — minted either by hand
+ * from Settings → API tokens, or by the OAuth flow at src/app/oauth/* (which
+ * both Claude.ai and ChatGPT require for their custom-connector UI — neither
+ * offers a plain API-key field, so a real OAuth 2.1 + PKCE authorization
+ * server is mandatory, not optional, for those two). MCP_CONNECTOR_TOKEN is
+ * a single fallback shared secret for anyone who hasn't set one up. The
+ * token travels as `Authorization: Bearer <token>` or, for clients that
+ * can't set custom headers, a `?token=<token>` query param.
  *
- * The query param exists because Claude.ai's and ChatGPT's custom-connector
- * setup treat a 401 response with `WWW-Authenticate: Bearer` as "this server
- * speaks OAuth" and prompt for an OAuth client ID/secret we don't have — this
- * isn't an OAuth server, just bearer secrets. So unauthenticated requests get
- * a plain 403 (no WWW-Authenticate header), and the token travels in the
- * connector URL instead: https://<host>/api/mcp?token=<token>.
+ * Unauthenticated requests get a real 401 with a WWW-Authenticate header
+ * pointing at the protected-resource metadata (RFC 9728), which points at
+ * the authorization server metadata (RFC 8414) — that chain is what lets
+ * Claude.ai/ChatGPT discover /oauth/register, /oauth/authorize, /oauth/token
+ * on their own instead of asking the user for an OAuth client ID by hand.
  *
  * Whoever holds a valid token gets the same read/write access to
  * Account/Contact/Deal/... this whole surface grants for every user, not
@@ -31,11 +34,13 @@
 
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
+import { headers } from "next/headers";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 import { hashApiToken } from "@/lib/api-tokens";
+import { originFromHost } from "@/lib/oauth";
 import { registerTools } from "../../../../mcp/tools";
 
 export const runtime = "nodejs";
@@ -76,16 +81,21 @@ async function isAuthorized(req: Request): Promise<boolean> {
   return true;
 }
 
-function unauthorized() {
-  // Deliberately no WWW-Authenticate header: it makes Claude.ai/ChatGPT's
-  // connector setup try to negotiate OAuth, which this server doesn't speak.
+async function unauthorized() {
+  const origin = originFromHost((await headers()).get("host"));
   return new Response(
     JSON.stringify({
       jsonrpc: "2.0",
       error: { code: -32001, message: "Unauthorized" },
       id: null,
     }),
-    { status: 403, headers: { "content-type": "application/json" } },
+    {
+      status: 401,
+      headers: {
+        "content-type": "application/json",
+        "www-authenticate": `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+      },
+    },
   );
 }
 
@@ -96,7 +106,7 @@ function buildServer() {
 }
 
 export async function POST(req: Request) {
-  if (!(await isAuthorized(req))) return unauthorized();
+  if (!(await isAuthorized(req))) return await unauthorized();
 
   const server = buildServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
@@ -108,7 +118,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  if (!(await isAuthorized(req))) return unauthorized();
+  if (!(await isAuthorized(req))) return await unauthorized();
   return new Response(
     JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }),
     { status: 405, headers: { "content-type": "application/json" } },
@@ -116,7 +126,7 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await isAuthorized(req))) return unauthorized();
+  if (!(await isAuthorized(req))) return await unauthorized();
   return new Response(
     JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }),
     { status: 405, headers: { "content-type": "application/json" } },

@@ -8,8 +8,15 @@ import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage() {
-  if (await getCurrentUser()) redirect("/");
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
+
+  if (await getCurrentUser()) redirect(safeNext ?? "/");
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-12">
@@ -52,7 +59,7 @@ export default async function LoginPage() {
           className="surface p-6"
           style={{ boxShadow: "0 24px 60px -20px rgb(0 0 0 / 0.6)" }}
         >
-          <LoginForm domain={ALLOWED_EMAIL_DOMAIN} />
+          <LoginForm domain={ALLOWED_EMAIL_DOMAIN} next={safeNext} />
         </div>
 
         <p

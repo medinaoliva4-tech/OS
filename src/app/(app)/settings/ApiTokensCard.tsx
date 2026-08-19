@@ -85,8 +85,11 @@ function CreateForm({ mcpUrl }: { mcpUrl: string }) {
             </button>
           </div>
           <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>
-            Paste this whole URL as the MCP server address in Claude.ai or ChatGPT&apos;s custom
-            connector setup — the token travels in it, no separate auth step needed.
+            For clients that take a raw bearer token or header (Claude Code, Codex, curl…),
+            paste this whole URL as the MCP server address. For Claude.ai or ChatGPT&apos;s
+            custom connector, you don&apos;t need this — just add{" "}
+            <code className="font-mono">{mcpUrl}</code> and sign in with your Inherent OS
+            account when prompted; they only support OAuth, and this OS speaks it.
           </p>
         </div>
       )}
