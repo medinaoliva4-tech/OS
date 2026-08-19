@@ -7,7 +7,7 @@
  */
 
 export const ALLOWED_EMAIL_DOMAIN = (
-  process.env.ALLOWED_EMAIL_DOMAIN ?? "inherentglobal.com"
+  process.env.ALLOWED_EMAIL_DOMAIN || "inherentglobal.com"
 ).toLowerCase();
 
 export function normalizeEmail(email: string): string {
