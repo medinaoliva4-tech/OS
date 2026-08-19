@@ -4,6 +4,7 @@ import { pipelineProgress } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/session";
 import { canViewFinancials } from "@/lib/policy";
 import { ACCOUNT_STATUSES, ACCOUNT_TIERS, option } from "@/lib/domain";
+import { toUsdAmount } from "@/lib/currency";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, EmptyState, Meter } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
@@ -38,7 +39,7 @@ export default async function AccountsPage() {
   const progress = pipelineProgress(steps);
   const totalMrr = accounts
     .filter((a) => a.status === "ACTIVE")
-    .reduce((sum, a) => sum + a.mrr, 0);
+    .reduce((sum, a) => sum + toUsdAmount(a.mrr, a.currency), 0);
 
   return (
     <>

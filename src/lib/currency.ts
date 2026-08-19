@@ -19,6 +19,17 @@ export type Currency = "USD" | "GTQ";
 /** Used until the live rate loads (or if it never does) — better than a blank amount. */
 export const FALLBACK_USD_TO_GTQ = 7.75;
 
+/**
+ * Normalizes a stored amount to USD before it goes into a sum. Server-side
+ * aggregates (dashboard MRR, brand-list MRR, P&L) mix rows that can each be
+ * stored in a different currency — summing the raw integers would silently
+ * add dollars to quetzales as if they were the same unit. Only USD/GTQ are
+ * ever entered through the UI, so anything else passes through unchanged.
+ */
+export function toUsdAmount(amount: number, currency: string): number {
+  return currency === "GTQ" ? amount / FALLBACK_USD_TO_GTQ : amount;
+}
+
 type RateCache = { rate: number; fetchedAt: number };
 
 let cachedRate: RateCache | null = null;

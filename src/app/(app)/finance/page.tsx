@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { canViewFinancials } from "@/lib/policy";
 import { toMonthly } from "@/lib/domain";
-import { FALLBACK_USD_TO_GTQ } from "@/lib/currency";
+import { toUsdAmount as toUsd } from "@/lib/currency";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, Stat } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
@@ -13,13 +13,6 @@ import { ReinvestmentsSection } from "./ReinvestmentsSection";
 
 export const metadata = { title: "Finance" };
 export const dynamic = "force-dynamic";
-
-/** Normalizes any stored amount to USD using the same fallback rate the
- * currency switch uses when it has no live one — good enough for a P&L
- * total, which is directionally right rather than to-the-cent anyway. */
-function toUsd(amount: number, currency: string): number {
-  return currency === "GTQ" ? amount / FALLBACK_USD_TO_GTQ : amount;
-}
 
 export default async function FinancePage() {
   const user = await requireUser();

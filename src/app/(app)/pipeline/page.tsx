@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, Stat } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Money } from "@/components/ui/Money";
+import { toUsdAmount } from "@/lib/currency";
 import { DealCard, type DealCardData } from "./DealCard";
 import { NewDealForm } from "./NewDealForm";
 
@@ -61,12 +62,22 @@ export default async function PipelinePage() {
         />
         <Stat
           label="Unweighted"
-          value={<Money amount={open.reduce((s, d) => s + d.value, 0)} compact />}
+          value={
+            <Money
+              amount={open.reduce((s, d) => s + toUsdAmount(d.value, d.currency), 0)}
+              compact
+            />
+          }
           sub="If everything landed"
         />
         <Stat
           label="Closed won"
-          value={<Money amount={won.reduce((s, d) => s + d.value, 0)} compact />}
+          value={
+            <Money
+              amount={won.reduce((s, d) => s + toUsdAmount(d.value, d.currency), 0)}
+              compact
+            />
+          }
           sub={`${won.length} ${won.length === 1 ? "deal" : "deals"}`}
           tone="var(--color-ok)"
         />
@@ -90,7 +101,10 @@ export default async function PipelinePage() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {DEAL_STAGES.map((stage) => {
             const column = byStage.get(stage.value) ?? [];
-            const columnValue = column.reduce((s, d) => s + d.value, 0);
+            const columnValue = column.reduce(
+              (s, d) => s + toUsdAmount(d.value, d.currency),
+              0,
+            );
 
             return (
               <section key={stage.value} className="min-w-0">
@@ -138,7 +152,10 @@ export default async function PipelinePage() {
       {lost.length > 0 && (
         <p className="mt-6 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
           {lost.length} lost {lost.length === 1 ? "deal" : "deals"} worth{" "}
-          <Money amount={lost.reduce((s, d) => s + d.value, 0)} compact />{" "}
+          <Money
+            amount={lost.reduce((s, d) => s + toUsdAmount(d.value, d.currency), 0)}
+            compact
+          />{" "}
           — kept for the win-rate maths, not for the forecast.
         </p>
       )}

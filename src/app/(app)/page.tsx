@@ -4,6 +4,7 @@ import { getDashboardData, pipelineProgress } from "@/lib/queries";
 import { formatDate, formatRelative, daysUntil } from "@/lib/format";
 import { CONTENT_STAGES, DEAL_STAGES, TASK_PRIORITIES, option } from "@/lib/domain";
 import { canViewFinancials } from "@/lib/policy";
+import { toUsdAmount } from "@/lib/currency";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, EmptyState, Meter, Stat } from "@/components/ui/Card";
 import { Money } from "@/components/ui/Money";
@@ -75,7 +76,10 @@ export default async function DashboardPage() {
                 <>
                   {data.openDeals.length} open ·{" "}
                   <Money
-                    amount={data.openDeals.reduce((s, d) => s + d.value, 0)}
+                    amount={data.openDeals.reduce(
+                      (s, d) => s + toUsdAmount(d.value, d.currency),
+                      0,
+                    )}
                     compact
                   />{" "}
                   unweighted
