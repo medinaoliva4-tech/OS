@@ -2,7 +2,7 @@
   "name": "inherent-os",
   "version": "0.1.0",
   "private": true,
-  "description": "Inherent OS — the CRM and operating system for Inherent Global.",
+  "description": "Inherent OS \u2014 the CRM and operating system for Inherent Global.",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -13,7 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "rm -f prisma/dev.db && npm run db:push && npm run db:seed",
     "setup": "prisma generate && npm run db:push && npm run db:seed",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "verify:seed": "tsx scripts/verify-seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

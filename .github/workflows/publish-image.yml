@@ -1,0 +1,107 @@
+name: Publish container image
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "Dockerfile"
+      - "docker-entrypoint.sh"
+      - "docker-compose.yml"
+      - "package*.json"
+      - "prisma/**"
+      - "src/**"
+      - "next.config.ts"
+      - ".github/workflows/publish-image.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, smoke-test and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name (lowercased — ghcr rejects uppercase)
+        id: name
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: inherent-os:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # A published image that does not boot is worse than no image.
+      - name: It must refuse a placeholder secret
+        run: |
+          if docker run --rm -e AUTH_SECRET=dev-only-secret-change-me inherent-os:ci true; then
+            echo "Container booted with a placeholder AUTH_SECRET"; exit 1
+          fi
+          echo "Correctly refused."
+
+      - name: It must boot, seed and serve
+        run: |
+          docker run -d --name os -p 3000:3000 \
+            -e AUTH_SECRET="$(openssl rand -hex 32)" \
+            inherent-os:ci
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:3000/login; then
+              echo "Serving after ${i}s"; break
+            fi
+            if [ "$i" = "60" ]; then echo "Never came up:"; docker logs os; exit 1; fi
+            sleep 1
+          done
+
+      - name: A guest must be redirected to sign in
+        run: |
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/)
+          echo "GET / -> $CODE"
+          test "$CODE" = "307" || { docker logs os; exit 1; }
+
+      - name: The sign-in page must state the domain lock
+        run: |
+          curl -fsS http://localhost:3000/login | grep -q "inherentglobal.com" \
+            || { echo "Domain lock not shown"; docker logs os; exit 1; }
+          docker rm -f os
+
+      - name: Publish
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ github.sha }}
+            ${{ steps.name.outputs.image }}:${{ github.ref_name == 'main' && 'latest' || 'edge' }}
+          cache-from: type=gha
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo
+            echo '```bash'
+            echo "docker run -d -p 3000:3000 \\"
+            echo "  -e AUTH_SECRET=\"\$(openssl rand -hex 32)\" \\"
+            echo "  -v inherent-os-data:/app/data \\"
+            echo "  ${{ steps.name.outputs.image }}:${{ github.sha }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
