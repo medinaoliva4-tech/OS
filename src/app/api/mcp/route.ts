@@ -6,9 +6,18 @@
  * server (mcp/server.ts, mcp/tools.ts), since neither of those clients can
  * spawn a subprocess: they need a URL.
  *
- * Auth: a single bearer token (MCP_CONNECTOR_TOKEN). Anyone with it gets the
- * same read/write access to Account/Contact/Deal/... this whole surface
- * grants — generate it with
+ * Auth: a single static token (MCP_CONNECTOR_TOKEN), accepted either as
+ * `Authorization: Bearer <token>` or as a `?token=<token>` query param.
+ *
+ * The query param exists because Claude.ai's and ChatGPT's custom-connector
+ * setup treat a 401 response with `WWW-Authenticate: Bearer` as "this server
+ * speaks OAuth" and prompt for an OAuth client ID/secret we don't have — this
+ * isn't an OAuth server, just a shared secret. So unauthenticated requests
+ * get a plain 403 (no WWW-Authenticate header), and the token travels in the
+ * connector URL instead: https://<host>/api/mcp?token=<token>.
+ *
+ * Anyone with the token gets the same read/write access to
+ * Account/Contact/Deal/... this whole surface grants — generate it with
  *   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
  * and keep it out of source control (Vercel env var only).
  *
@@ -31,27 +40,35 @@ export const dynamic = "force-dynamic";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
+function matches(candidate: string | null, expected: string): boolean {
+  if (!candidate) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 function isAuthorized(req: Request): boolean {
   const expected = process.env.MCP_CONNECTOR_TOKEN;
   if (!expected) return false;
 
   const header = req.headers.get("authorization") ?? "";
-  const [scheme, token] = header.split(" ");
-  if (scheme !== "Bearer" || !token) return false;
+  const [scheme, headerToken] = header.split(" ");
+  if (scheme === "Bearer" && matches(headerToken, expected)) return true;
 
-  const a = Buffer.from(token);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  const queryToken = new URL(req.url).searchParams.get("token");
+  return matches(queryToken, expected);
 }
 
 function unauthorized() {
+  // Deliberately no WWW-Authenticate header: it makes Claude.ai/ChatGPT's
+  // connector setup try to negotiate OAuth, which this server doesn't speak.
   return new Response(
     JSON.stringify({
       jsonrpc: "2.0",
       error: { code: -32001, message: "Unauthorized" },
       id: null,
     }),
-    { status: 401, headers: { "content-type": "application/json", "www-authenticate": "Bearer" } },
+    { status: 403, headers: { "content-type": "application/json" } },
   );
 }
 
