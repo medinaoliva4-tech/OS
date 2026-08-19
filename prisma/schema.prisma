@@ -1,0 +1,420 @@
+// ---------------------------------------------------------------------------
+// Inherent OS — data model
+//
+// Two halves that share one spine:
+//   CRM   — who we sell to and what that is worth (Account, Contact, Deal)
+//   OS    — how the work actually gets made (Project, Task, ContentItem,
+//           Asset, Integration)
+//
+// The spine is `Account`: every client brand is an Account, and every piece of
+// work, content, and asset hangs off one. That is what makes "open NAO" show
+// the pipeline, the calendar, the pendientes and the asset store in one place.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // SQLite keeps the MVP self-contained: clone, `npm run setup`, done.
+  // Switch to "postgresql" and change DATABASE_URL to deploy.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================================================
+// People & access
+// ===========================================================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  title        String?
+  role         String    @default("MEMBER") // OWNER | ADMIN | MEMBER
+  passwordHash String
+  avatarHue    Int       @default(210) // 0-359, drives the generated avatar
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions      Session[]
+  ownedAccounts Account[]     @relation("AccountOwner")
+  ownedDeals    Deal[]        @relation("DealOwner")
+  ownedProjects Project[]     @relation("ProjectOwner")
+  assignedTasks Task[]        @relation("TaskAssignee")
+  createdTasks  Task[]        @relation("TaskCreator")
+  ownedContent  ContentItem[] @relation("ContentOwner")
+  activities    Activity[]
+  notes         Note[]
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ===========================================================================
+// CRM
+// ===========================================================================
+
+/// A client brand or an internal entity. The spine of the whole OS.
+model Account {
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  kind     String  @default("CLIENT") // CLIENT | PROSPECT | PARTNER | INTERNAL
+  status   String  @default("ACTIVE") // ACTIVE | ONBOARDING | PAUSED | CHURNED
+  tier     String  @default("GROWTH") // FOUNDING | GROWTH | ENTERPRISE
+  industry String?
+  website  String?
+  summary  String?
+  /// Hex accent for the brand chip across the OS.
+  brandHex String  @default("#8B8FF5")
+
+  // Retainer economics
+  mrr      Int    @default(0) // stored in whole currency units
+  currency String @default("USD")
+
+  // Where this brand's work physically lives. These make the OS a real hub
+  // instead of another place to re-type links.
+  githubRepo      String? // owner/repo — the content-system folder in git
+  githubPath      String? @default("/")
+  driveFolderUrl  String?
+  jockeyWorkspace String?
+  figmaFileUrl    String?
+  notionUrl       String?
+
+  ownerId String?
+  owner   User?   @relation("AccountOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  startedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts      Contact[]
+  deals         Deal[]
+  projects      Project[]
+  tasks         Task[]
+  contentItems  ContentItem[]
+  assets        Asset[]
+  guidelines    Guideline[]
+  notes         Note[]
+  pipelineSteps ContentPipelineStep[]
+
+  @@index([slug])
+  @@index([status])
+}
+
+model Contact {
+  id        String  @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  title     String?
+  isPrimary Boolean @default(false)
+  linkedin  String?
+  notes     String?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  /// LEAD | QUALIFIED | PROPOSAL | NEGOTIATION | WON | LOST
+  stage             String    @default("LEAD")
+  value             Int       @default(0)
+  currency          String    @default("USD")
+  probability       Int       @default(20)
+  source            String? // REFERRAL | INBOUND | OUTBOUND | NETWORK | EXISTING
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  lostReason        String?
+  notes             String?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ownerId   String?
+  owner     User?   @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([stage])
+}
+
+// ===========================================================================
+// Delivery
+// ===========================================================================
+
+model Project {
+  id        String    @id @default(cuid())
+  name      String
+  summary   String?
+  /// PLANNING | ACTIVE | BLOCKED | DONE
+  status    String    @default("ACTIVE")
+  startDate DateTime?
+  dueDate   DateTime?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ownerId   String?
+  owner     User?   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+
+  @@index([accountId])
+}
+
+/// The pendientes board. One row per thing somebody actually has to do.
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  /// BACKLOG | TODO | IN_PROGRESS | BLOCKED | REVIEW | DONE
+  status      String    @default("TODO")
+  /// LOW | MEDIUM | HIGH | URGENT
+  priority    String    @default("MEDIUM")
+  dueDate     DateTime?
+  completedAt DateTime?
+  /// Comma-separated labels, e.g. "guidelines,jockey".
+  labels      String    @default("")
+  /// Which stage of the content system this task advances, when it maps to one.
+  pipelineKey String?
+  position    Int       @default(0)
+
+  accountId   String?
+  account     Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assigneeId  String?
+  assignee    User?    @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([status])
+  @@index([assigneeId])
+}
+
+// ===========================================================================
+// Content system
+// ===========================================================================
+
+/// One planned or published piece. Drives the per-brand calendar.
+model ContentItem {
+  id           String    @id @default(cuid())
+  title        String
+  caption      String?
+  /// REEL | POST | CAROUSEL | STORY | VIDEO | UGC | STILL
+  format       String    @default("POST")
+  /// INSTAGRAM | TIKTOK | YOUTUBE | LINKEDIN | WEB | EMAIL
+  channel      String    @default("INSTAGRAM")
+  /// IDEA | BRIEF | GENERATING | REVIEW | APPROVED | SCHEDULED | PUBLISHED
+  stage        String    @default("IDEA")
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  /// Where the generated asset came from: JOCKEY | HIGGSFIELD | SHOT | EXTERNAL
+  origin       String?
+  hook         String?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ownerId   String?
+  owner     User?   @relation("ContentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assets Asset[]
+
+  @@index([accountId])
+  @@index([scheduledFor])
+  @@index([stage])
+}
+
+/// A file that exists somewhere real — Drive, Jockey, Higgsfield, GitHub.
+model Asset {
+  id        String  @id @default(cuid())
+  name      String
+  /// IMAGE | VIDEO | DOC | GUIDELINE | AUDIO | OTHER
+  kind      String  @default("IMAGE")
+  /// RAW | GENERATED | APPROVED | FINAL | ARCHIVED
+  stage     String  @default("RAW")
+  /// DRIVE | JOCKEY | HIGGSFIELD | GITHUB | FIGMA | LOCAL
+  source    String  @default("DRIVE")
+  url       String?
+  /// Path inside the brand's content-system folder.
+  path      String?
+  mimeType  String?
+  sizeBytes Int?
+  notes     String?
+
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contentItemId String?
+  contentItem   ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([stage])
+}
+
+/// Brand guidelines tracked section by section, so "terminar guidelines" has a
+/// number attached to it instead of a feeling.
+model Guideline {
+  id        String  @id @default(cuid())
+  section   String
+  /// MISSING | DRAFT | REVIEW | DONE
+  status    String  @default("MISSING")
+  content   String?
+  sourceUrl String?
+  position  Int     @default(0)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+/// A checkpoint in the Drive -> Jockey -> Higgsfield -> Approved -> GitHub ->
+/// Design -> Schedule chain, tracked per brand. This is the pendientes list
+/// turned into a machine you can look at.
+model ContentPipelineStep {
+  id        String  @id @default(cuid())
+  /// Stable identifier for the stage, e.g. "jockey_ingest".
+  key       String
+  label     String
+  /// NOT_STARTED | IN_PROGRESS | BLOCKED | DONE
+  status    String  @default("NOT_STARTED")
+  position  Int     @default(0)
+  /// Which integration owns this hop.
+  toolKey   String?
+  note      String?
+  updatedBy String?
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, key])
+  @@index([accountId])
+}
+
+// ===========================================================================
+// Connections & activity
+// ===========================================================================
+
+/// A tool we depend on. The Connections hub is the single answer to
+/// "is the pipe between Drive and Jockey actually working right now?"
+model Integration {
+  id         String    @id @default(cuid())
+  key        String    @unique // github, drive, jockey, higgsfield, zapier, cowork...
+  name       String
+  /// SOURCE | KNOWLEDGE | GENERATION | AUTOMATION | DELIVERY | COMMS | DESIGN
+  category   String    @default("AUTOMATION")
+  /// CONNECTED | NEEDS_SETUP | DEGRADED | ERROR | DISABLED
+  status     String    @default("NEEDS_SETUP")
+  summary    String?
+  /// What this tool is responsible for in our chain, in one line.
+  role       String?
+  docsUrl    String?
+  /// Name of the env var that switches this on. Never the secret itself.
+  envKey     String?
+  /// JSON blob of non-secret config (workspace ids, folder names, ...).
+  config     String    @default("{}")
+  lastSyncAt DateTime?
+  lastError  String?
+  position   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  syncEvents SyncEvent[]
+
+  @@index([status])
+}
+
+model SyncEvent {
+  id      String  @id @default(cuid())
+  /// OK | WARN | ERROR
+  level   String  @default("OK")
+  message String
+  detail  String?
+
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([integrationId])
+}
+
+/// Append-only feed. Every mutation in the OS writes one of these.
+model Activity {
+  id         String @id @default(cuid())
+  /// created | updated | moved | completed | connected | commented
+  verb       String
+  entityType String
+  entityId   String
+  summary    String
+  meta       String @default("{}")
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Note {
+  id         String @id @default(cuid())
+  body       String
+  entityType String
+  entityId   String
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId])
+}

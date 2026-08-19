@@ -1,0 +1,283 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Inherent OS — theme
+   Tokens mirror src/lib/brand.ts. Change the brand there, mirror it here once.
+   Dark is the design's home; light is a full, deliberate counterpart.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-ink: #0b0c0e;
+  --color-ink-raised: #131519;
+  --color-ink-overlay: #191c21;
+  --color-line: #24282f;
+  --color-line-strong: #333944;
+
+  --color-paper: #f4f3f1;
+  --color-paper-muted: #a3a8b2;
+  --color-paper-faint: #6b717c;
+
+  --color-accent: #8b8ff5;
+  --color-accent-soft: #a9adf8;
+  --color-accent-deep: #5b60e0;
+
+  --color-ok: #4ade80;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+  --color-progress: #c084fc;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-card: 14px;
+}
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0b0c0e;
+  --bg-raised: #131519;
+  --bg-overlay: #191c21;
+  --bg-hover: #1e2228;
+  --line: #24282f;
+  --line-strong: #333944;
+  --text: #f4f3f1;
+  --text-muted: #a3a8b2;
+  --text-faint: #6b717c;
+  --accent: #8b8ff5;
+  --accent-soft: #a9adf8;
+  --accent-ink: #0b0c0e;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #fbfbfa;
+  --bg-raised: #ffffff;
+  --bg-overlay: #f4f4f2;
+  --bg-hover: #efefec;
+  --line: #e4e4e0;
+  --line-strong: #cfcfc9;
+  --text: #14161a;
+  --text-muted: #5a606b;
+  --text-faint: #868c97;
+  --accent: #5b60e0;
+  --accent-soft: #4348c9;
+  --accent-ink: #ffffff;
+  --shadow-card: 0 1px 2px rgb(16 18 22 / 0.05), 0 8px 24px -16px rgb(16 18 22 / 0.18);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 32%, transparent);
+  color: var(--text);
+}
+
+/* Scrollbars that do not fight the dark ground. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--text-faint) 60%, transparent);
+  background-clip: content-box;
+}
+
+/* --------------------------------------------------------------------------
+   Primitives
+-------------------------------------------------------------------------- */
+
+@layer components {
+  .surface {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+  }
+
+  .surface-flat {
+    background: var(--bg-overlay);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .field {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 9px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .field::placeholder {
+    color: var(--text-faint);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+  select.field {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-faint) 50%),
+      linear-gradient(135deg, var(--text-faint) 50%, transparent 50%);
+    background-position: calc(100% - 16px) calc(50% + 1px),
+      calc(100% - 11px) calc(50% + 1px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2rem;
+  }
+  textarea.field {
+    resize: vertical;
+    min-height: 5rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 9px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-soft);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--line-strong);
+    color: var(--text);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+  .btn-quiet {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0.35rem 0.5rem;
+  }
+  .btn-quiet:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+  .btn-danger {
+    background: transparent;
+    border-color: color-mix(in oklab, var(--color-danger) 45%, transparent);
+    color: var(--color-danger);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-danger) 14%, transparent);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+
+  .label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .link-quiet {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 120ms ease;
+  }
+  .link-quiet:hover {
+    color: var(--text);
+  }
+
+  .row-hover:hover {
+    background: var(--bg-hover);
+  }
+
+  /* Focus ring for keyboard users only. */
+  .focusable:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-in {
+  animation: fade-up 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

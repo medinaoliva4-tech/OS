@@ -1,0 +1,197 @@
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { pipelineProgress } from "@/lib/queries";
+import { formatMoney } from "@/lib/format";
+import { ACCOUNT_STATUSES, ACCOUNT_TIERS, option } from "@/lib/domain";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, EmptyState, Meter } from "@/components/ui/Card";
+import { Chip } from "@/components/ui/Chip";
+import { Avatar } from "@/components/ui/Avatar";
+import { Icon } from "@/components/ui/Icon";
+
+export const metadata = { title: "Brands" };
+export const dynamic = "force-dynamic";
+
+export default async function AccountsPage() {
+  const [accounts, steps] = await Promise.all([
+    db.account.findMany({
+      include: {
+        owner: { select: { name: true, avatarHue: true } },
+        _count: {
+          select: { contacts: true, contentItems: true, assets: true, deals: true },
+        },
+        tasks: { where: { status: { not: "DONE" } }, select: { id: true } },
+      },
+      orderBy: [{ status: "asc" }, { name: "asc" }],
+    }),
+    db.contentPipelineStep.findMany({
+      select: { accountId: true, status: true },
+    }),
+  ]);
+
+  const progress = pipelineProgress(steps);
+  const totalMrr = accounts
+    .filter((a) => a.status === "ACTIVE")
+    .reduce((sum, a) => sum + a.mrr, 0);
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Revenue"
+        title="Brands"
+        description={`${accounts.length} ${accounts.length === 1 ? "brand" : "brands"} · ${formatMoney(totalMrr)} monthly recurring across the active ones.`}
+        actions={
+          <Link href="/accounts/new" className="btn btn-primary focusable">
+            <Icon name="plus" size={15} />
+            New brand
+          </Link>
+        }
+      />
+
+      {accounts.length === 0 ? (
+        <EmptyState
+          title="No brands yet"
+          hint="Every piece of work in the OS hangs off a brand. Add the first one."
+          action={
+            <Link href="/accounts/new" className="btn btn-primary focusable">
+              Add a brand
+            </Link>
+          }
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {accounts.map((account) => {
+            const status = option(ACCOUNT_STATUSES, account.status);
+            const tier = option(ACCOUNT_TIERS, account.tier);
+            const p = progress.get(account.id) ?? {
+              done: 0,
+              total: 0,
+              blocked: 0,
+              inProgress: 0,
+            };
+            const openTasks = account.tasks.length;
+
+            return (
+              <Link
+                key={account.id}
+                href={`/accounts/${account.slug}`}
+                className="focusable block"
+              >
+                <Card className="h-full transition-colors hover:bg-[var(--bg-hover)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] text-[13px] font-bold"
+                        style={{
+                          background: `color-mix(in oklab, ${account.brandHex} 18%, transparent)`,
+                          color: account.brandHex,
+                          border: `1px solid color-mix(in oklab, ${account.brandHex} 34%, transparent)`,
+                        }}
+                      >
+                        {account.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {account.name}
+                        </p>
+                        <p
+                          className="truncate text-[11px]"
+                          style={{ color: "var(--text-faint)" }}
+                        >
+                          {account.industry ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <Chip tone={status.tone} dot>
+                      {status.label}
+                    </Chip>
+                  </div>
+
+                  {account.summary && (
+                    <p
+                      className="mt-3 line-clamp-2 text-[12px] leading-relaxed"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {account.summary}
+                    </p>
+                  )}
+
+                  <div className="mt-4">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="label">Content system</span>
+                      <span
+                        className="text-[11px] tabular-nums"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        {p.done}/{p.total}
+                      </span>
+                    </div>
+                    <Meter
+                      value={p.done}
+                      total={p.total}
+                      inFlight={p.inProgress}
+                      tone={account.brandHex}
+                    />
+                  </div>
+
+                  <dl
+                    className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center"
+                    style={{ borderColor: "var(--line)" }}
+                  >
+                    <div>
+                      <dt className="label">MRR</dt>
+                      <dd className="mt-0.5 text-[13px] font-semibold tabular-nums">
+                        {account.mrr > 0
+                          ? formatMoney(account.mrr, account.currency, {
+                              compact: true,
+                            })
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="label">Open</dt>
+                      <dd
+                        className="mt-0.5 text-[13px] font-semibold tabular-nums"
+                        style={
+                          openTasks > 0 ? { color: "var(--color-warn)" } : undefined
+                        }
+                      >
+                        {openTasks}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="label">Assets</dt>
+                      <dd className="mt-0.5 text-[13px] font-semibold tabular-nums">
+                        {account._count.assets}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div
+                    className="mt-3 flex items-center justify-between gap-2 border-t pt-3"
+                    style={{ borderColor: "var(--line)" }}
+                  >
+                    <Chip tone={tier.tone}>{tier.label}</Chip>
+                    {account.owner && (
+                      <span
+                        className="flex items-center gap-1.5 text-[11px]"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        <Avatar
+                          name={account.owner.name}
+                          hue={account.owner.avatarHue}
+                          size={18}
+                        />
+                        {account.owner.name.split(" ")[0]}
+                      </span>
+                    )}
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}

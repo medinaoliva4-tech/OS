@@ -1,0 +1,58 @@
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/session";
+import { Sidebar } from "@/components/shell/Sidebar";
+import { Topbar } from "@/components/shell/Topbar";
+import type { PaletteEntry } from "@/components/shell/CommandPalette";
+
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  // Sidebar counters and palette entries in one round of queries — these run
+  // on every authenticated page, so they stay deliberately cheap.
+  const [openTasks, openDeals, needsAttention, brandRows] = await Promise.all([
+    db.task.count({ where: { status: { notIn: ["DONE"] } } }),
+    db.deal.count({ where: { stage: { notIn: ["WON", "LOST"] } } }),
+    db.integration.count({
+      where: { status: { in: ["NEEDS_SETUP", "ERROR", "DEGRADED"] } },
+    }),
+    db.account.findMany({
+      where: { kind: { not: "INTERNAL" } },
+      select: { name: true, slug: true, brandHex: true, status: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const brands: PaletteEntry[] = brandRows.map((row) => ({
+    id: `brand:${row.slug}`,
+    label: row.name,
+    hint: `Open the ${row.name} workspace`,
+    href: `/accounts/${row.slug}`,
+    group: "Brand",
+    hex: row.brandHex,
+  }));
+
+  const counts: Record<string, number> = {
+    "/tasks": openTasks,
+    "/pipeline": openDeals,
+    "/connections": needsAttention,
+  };
+
+  return (
+    <div className="min-h-dvh">
+      <Sidebar counts={counts} />
+      {/* overflow-x: clip (not hidden) contains a wide table's scroll area
+          without turning this into a scroll container, which would break the
+          sticky topbar. */}
+      <div className="[overflow-x:clip] lg:pl-[228px]">
+        <Topbar user={user} brands={brands} />
+        <main className="animate-in px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+      </div>
+    </div>
+  );
+}
