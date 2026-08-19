@@ -14,7 +14,9 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [main]
+    # This repo's default branch is claude/crm-os-inherent-mvp-xbhjl6 — there
+    # is no `main`. Deploy off whatever the default branch actually is.
+    branches: [claude/crm-os-inherent-mvp-xbhjl6]
   workflow_dispatch:
     inputs:
       environment:
