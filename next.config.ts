@@ -6,10 +6,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   typedRoutes: false,
   experimental: {
-    // Prisma's engine is a native binary; keep it external to the server bundle.
     serverActions: { bodySizeLimit: "4mb" },
   },
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  // Prisma 7's client is TS/WASM (no native engine binary to worry about),
+  // but its runtime still isn't meant to go through the app bundler.
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
 };
 
 export default nextConfig;
