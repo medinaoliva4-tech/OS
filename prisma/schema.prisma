@@ -68,8 +68,28 @@ model User {
   notes         Note[]
   services      Service[]     @relation("ServiceMembers")
   salary        Salary?
+  apiTokens     ApiToken[]
 
   @@index([email])
+}
+
+/// A personal access token for the remote MCP connector (src/app/api/mcp).
+/// Each user mints their own so Claude.ai / ChatGPT custom connectors can be
+/// wired up per person instead of sharing one static secret. The raw token
+/// is shown once at creation time and only its SHA-256 hash is stored.
+model ApiToken {
+  id         String    @id @default(cuid())
+  name       String
+  tokenHash  String    @unique
+  /// Last 4 chars of the raw token, for display in the list ("…ab12").
+  last4      String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 model Session {
