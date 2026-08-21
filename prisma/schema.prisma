@@ -12,7 +12,8 @@
 // ---------------------------------------------------------------------------
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -22,15 +23,18 @@ datasource db {
   //
   //   DATABASE_URL  the pooled one (Supavisor, port 6543). Serverless
   //                 functions open and drop connections constantly, so every
-  //                 query the app runs goes through the pooler.
+  //                 query the app runs goes through the pooler. The app
+  //                 passes this to the driver adapter at runtime (src/lib/db.ts).
   //   DIRECT_URL    the direct one (port 5432). Transaction-mode pooling
   //                 cannot run DDL or advisory locks, so migrations must
-  //                 bypass it.
+  //                 bypass it. The CLI reads this via prisma.config.ts.
   //
   // Getting this wrong fails in the least helpful way: the app works and
   // migrations hang.
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  //
+  // As of Prisma 7, url/directUrl here are deprecated in favor of
+  // prisma.config.ts — see that file for where each connection string is
+  // actually wired in.
 }
 
 // ===========================================================================
@@ -45,6 +49,9 @@ model User {
   role         String    @default("MEMBER") // OWNER | ADMIN | MEMBER
   passwordHash String
   avatarHue    Int       @default(210) // 0-359, drives the generated avatar
+  /// A real photo — data URI or https URL. Falls back to the hue-based
+  /// initials tile (Avatar component) when empty.
+  avatarUrl    String?
   active       Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
@@ -59,8 +66,31 @@ model User {
   ownedContent  ContentItem[] @relation("ContentOwner")
   activities    Activity[]
   notes         Note[]
+  services      Service[]     @relation("ServiceMembers")
+  salary        Salary?
+  apiTokens     ApiToken[]
+  oauthCodes    OAuthCode[]
 
   @@index([email])
+}
+
+/// A personal access token for the remote MCP connector (src/app/api/mcp).
+/// Each user mints their own so Claude.ai / ChatGPT custom connectors can be
+/// wired up per person instead of sharing one static secret. The raw token
+/// is shown once at creation time and only its SHA-256 hash is stored.
+model ApiToken {
+  id         String    @id @default(cuid())
+  name       String
+  tokenHash  String    @unique
+  /// Last 4 chars of the raw token, for display in the list ("…ab12").
+  last4      String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 model Session {
@@ -74,6 +104,45 @@ model Session {
 
   @@index([userId])
   @@index([token])
+}
+
+// ===========================================================================
+// OAuth (for Claude.ai / ChatGPT custom connectors — src/app/oauth/*)
+//
+// Both platforms only support OAuth 2.1 + PKCE for custom MCP connectors —
+// no bearer/API-key field in their UI — so this is the mandatory path, not
+// an alternative to the per-user ApiToken above. The token an OAuth exchange
+// hands back IS an ApiToken row underneath; these two models exist only to
+// get there: who registered as a client, and the one-time code that proves
+// a logged-in OS user approved the connection.
+// ===========================================================================
+
+/// A client that completed Dynamic Client Registration (RFC 7591). Public
+/// clients only (Claude.ai, ChatGPT) — no secret, PKCE carries the security.
+model OAuthClient {
+  id           String   @id @default(cuid())
+  name         String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+}
+
+/// A short-lived authorization code from the PKCE flow. Single-use, minutes
+/// not days — by the time /oauth/token consumes it, an ApiToken already
+/// exists and this row is disposable.
+model OAuthCode {
+  id                  String    @id @default(cuid())
+  code                String    @unique
+  clientId            String
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redirectUri         String
+  codeChallenge       String
+  codeChallengeMethod String    @default("S256")
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // ===========================================================================
@@ -431,4 +500,92 @@ model Note {
   updatedAt DateTime @updatedAt
 
   @@index([entityType, entityId])
+}
+
+// ===========================================================================
+// Services — the lines of work the agency sells (Content Creation, Graphic
+// Design, Photography...), each with its own team. Not money — visible to
+// everyone, unlike the Finance models below.
+// ===========================================================================
+
+model Service {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  /// Hex accent, same idea as Account.brandHex.
+  color       String  @default("#5EEAD4")
+  /// ACTIVE | PAUSED
+  status      String  @default("ACTIVE")
+  position    Int     @default(0)
+
+  members User[] @relation("ServiceMembers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// ===========================================================================
+// Finance — ADMIN+ only (see canViewFinancials in src/lib/policy.ts), same
+// gate as MRR and deal values. Deliberately three separate, simple models
+// rather than one generic "transaction" table: Costs, Salaries and
+// Reinvestments are different questions with different shapes, and P&L is
+// computed live from these plus revenue rather than stored anywhere.
+// ===========================================================================
+
+/// A recurring or one-off business cost — tools, infra, office, whatever
+/// isn't a person's pay (that's Salary).
+model Cost {
+  id         String    @id @default(cuid())
+  name       String
+  /// TOOLS | INFRA | OFFICE | MARKETING | LEGAL | OTHER
+  category   String    @default("OTHER")
+  amount     Int
+  currency   String    @default("USD")
+  /// ONE_TIME | MONTHLY | YEARLY
+  recurrence String    @default("MONTHLY")
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recurrence])
+}
+
+/// A team member's current pay. Deliberately one row per person — "what do
+/// we pay them now", not a full raise history.
+model Salary {
+  id        String   @id @default(cuid())
+  amount    Int
+  currency  String   @default("USD")
+  /// MONTHLY | YEARLY
+  cadence   String   @default("MONTHLY")
+  startDate DateTime @default(now())
+  notes     String?
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A log entry of money put back into the business — equipment, a hire,
+/// tooling — anything that isn't a recurring Cost.
+model Reinvestment {
+  id       String   @id @default(cuid())
+  title    String
+  amount   Int
+  currency String   @default("USD")
+  date     DateTime @default(now())
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
 }

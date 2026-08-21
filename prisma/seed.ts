@@ -9,12 +9,14 @@
  * twice does not duplicate anything. Re-run any time with `npm run db:seed`.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client";
 import { hashPassword } from "../src/lib/passwords";
 import { checkEmailDomain } from "../src/lib/policy";
 import { CONTENT_PIPELINE, GUIDELINE_SECTIONS } from "../src/lib/pipeline-blueprint";
 
-const db = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
 
 const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "Inherent2026!";
 
@@ -36,7 +38,8 @@ async function seedUsers() {
       email: "pablorodriguez@inherentglobal.com",
       name: "Pablo Rodriguez",
       title: "Founder & Operations",
-      role: "ADMIN",
+      // MEMBER: no financial access (MRR, deal values, weighted pipeline).
+      role: "MEMBER",
       avatarHue: 152,
     },
   ];

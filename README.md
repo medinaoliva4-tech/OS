@@ -36,7 +36,7 @@ Two accounts are created by the seed:
 | Person | Email | Role |
 | --- | --- | --- |
 | Rodrigo Medina | `rodrigomedina@inherentglobal.com` | Owner (CEO) |
-| Pablo Rodriguez | `pablorodriguez@inherentglobal.com` | Admin |
+| Pablo Rodriguez | `pablorodriguez@inherentglobal.com` | Member (no financial data) |
 
 Both start with the password in `SEED_PASSWORD` (default `Inherent2026!`).
 **Change them from Settings after the first sign-in.**
@@ -194,8 +194,9 @@ database is healthy, with no redeploy.
 curl -s https://<deployment>/api/health | jq
 ```
 
-**3. Create the schema.** Migrations do not run on Vercel — its build step has
-no business writing to your database. Run them once from your machine:
+**3. Create the schema.** The Vercel build runs `prisma migrate deploy`, so
+`DIRECT_URL` must be set in the Vercel project or the build will fail. To seed
+the founding team, run this once from your machine using the **direct** string:
 
 ```bash
 DIRECT_URL="<the direct string>" DATABASE_URL="<the direct string>" \
@@ -242,7 +243,31 @@ npm run db:seed      # re-run the seed (idempotent)
 npm run db:reset     # drop, re-migrate and reseed — destroys data
 npm run db:studio    # browse the data
 npm run verify:seed  # assert the seed invariants
+npm run mcp          # start the local MCP server (see below)
 ```
+
+---
+
+## Editing data with an agent (MCP)
+
+`mcp/server.ts` is a local MCP server that gives an agent (Claude Code, Codex,
+any MCP client) direct read/write access to the CRM data — accounts, deals,
+tasks, content, guidelines — so the seeded placeholder rows can be edited
+into real data without going through the UI. It deliberately excludes `User`
+and `Session`: an agent can't touch passwords, roles, or session tokens
+through it.
+
+It runs over stdio and reads `DATABASE_URL`/`DIRECT_URL` from `.env` like
+everything else here — no separate auth, no network exposure. Wire it into
+Claude Code from the repo root:
+
+```bash
+claude mcp add --scope project inherent-os -- npx tsx mcp/server.ts
+```
+
+Tools: `list_models` (field reference for every editable model),
+`list_records`, `get_record`, `create_record`, `update_record`,
+`delete_record`.
 
 ---
 

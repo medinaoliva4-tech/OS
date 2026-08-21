@@ -9,6 +9,7 @@ on:
       - "docker-compose.yml"
       - "package*.json"
       - "prisma/**"
+      - "prisma.config.ts"
       - "src/**"
       - "next.config.ts"
       - ".github/workflows/publish-image.yml"
@@ -116,7 +117,7 @@ jobs:
           push: true
           tags: |
             ${{ steps.name.outputs.image }}:${{ github.sha }}
-            ${{ steps.name.outputs.image }}:${{ github.ref_name == 'main' && 'latest' || 'edge' }}
+            ${{ steps.name.outputs.image }}:${{ github.ref_name == 'claude/crm-os-inherent-mvp-xbhjl6' && 'latest' || 'edge' }}
           cache-from: type=gha
 
       - name: Summary

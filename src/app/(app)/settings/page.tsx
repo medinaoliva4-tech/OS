@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/policy";
@@ -12,6 +13,8 @@ import {
   InherentMark,
 } from "@/components/ui/brand/InherentMarks";
 import { PasswordForm } from "./PasswordForm";
+import { AvatarUpload } from "./AvatarUpload";
+import { ApiTokensCard } from "./ApiTokensCard";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -19,12 +22,24 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const user = await getCurrentUser();
 
-  const [accountCount, taskCount, contentCount, assetCount] = await Promise.all([
+  const [accountCount, taskCount, contentCount, assetCount, apiTokens] = await Promise.all([
     db.account.count(),
     db.task.count(),
     db.contentItem.count(),
     db.asset.count(),
+    user
+      ? db.apiToken.findMany({
+          where: { userId: user.id, revokedAt: null },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, name: true, last4: true, createdAt: true, lastUsedAt: true },
+        })
+      : Promise.resolve([]),
   ]);
+
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const proto = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
+  const mcpUrl = `${proto}://${host}/api/mcp`;
 
   const isProd = process.env.NODE_ENV === "production";
   const secretIsDefault =
@@ -44,26 +59,41 @@ export default async function SettingsPage() {
         <Card>
           <CardHeader title="You" />
           {user && (
-            <div className="flex items-center gap-3">
-              <Avatar name={user.name} hue={user.avatarHue} size={44} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{user.name}</p>
-                <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-                  {user.email}
-                </p>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <Chip tone={user.role === "OWNER" ? "accent" : "neutral"}>
-                    {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
-                  </Chip>
-                  {user.title && (
-                    <span
-                      className="text-[11px]"
-                      style={{ color: "var(--text-faint)" }}
-                    >
-                      {user.title}
-                    </span>
-                  )}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar
+                  name={user.name}
+                  hue={user.avatarHue}
+                  imageUrl={user.avatarUrl}
+                  size={44}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{user.name}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                    {user.email}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Chip tone={user.role === "OWNER" ? "accent" : "neutral"}>
+                      {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
+                    </Chip>
+                    {user.title && (
+                      <span
+                        className="text-[11px]"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        {user.title}
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              <div className="border-t pt-4" style={{ borderColor: "var(--line)" }}>
+                <AvatarUpload
+                  name={user.name}
+                  hue={user.avatarHue}
+                  currentUrl={user.avatarUrl}
+                />
               </div>
             </div>
           )}
@@ -122,6 +152,15 @@ export default async function SettingsPage() {
               .
             </p>
           )}
+        </Card>
+
+        {/* ------------------------------------------------------------ */}
+        <Card>
+          <CardHeader
+            title="API tokens"
+            subtitle="Connect your own Claude.ai or ChatGPT custom connector to the OS."
+          />
+          <ApiTokensCard tokens={apiTokens} mcpUrl={mcpUrl} />
         </Card>
 
         {/* ------------------------------------------------------------ */}

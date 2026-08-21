@@ -24,6 +24,7 @@ export type AccountFormValues = {
   brandHex?: string;
   logoUrl?: string | null;
   mrr?: number;
+  currency?: string;
   githubRepo?: string | null;
   githubPath?: string | null;
   driveFolderUrl?: string | null;
@@ -47,12 +48,15 @@ export function AccountForm({
   members,
   submitLabel,
   cancelHref,
+  canEditFinancials = true,
 }: {
   action: (formData: FormData) => Promise<void>;
   values?: AccountFormValues;
   members: { id: string; name: string }[];
   submitLabel: string;
   cancelHref: string;
+  /** Hides the MRR field. The server action ignores it either way. */
+  canEditFinancials?: boolean;
 }) {
   const [brandHex, setBrandHex] = useState(
     values.brandHex ?? BRAND_SWATCHES[0],
@@ -224,20 +228,33 @@ export function AccountForm({
             </select>
           </div>
 
-          <div>
-            <label htmlFor="mrr" className="label mb-1.5 block">
-              MRR (USD)
-            </label>
-            <input
-              id="mrr"
-              name="mrr"
-              type="number"
-              min={0}
-              step={100}
-              defaultValue={values.mrr ?? 0}
-              className="field"
-            />
-          </div>
+          {canEditFinancials && (
+            <div>
+              <label htmlFor="mrr" className="label mb-1.5 block">
+                MRR
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  id="mrr"
+                  name="mrr"
+                  type="number"
+                  min={0}
+                  step={100}
+                  defaultValue={values.mrr ?? 0}
+                  className="field flex-1"
+                />
+                <select
+                  name="mrrCurrency"
+                  defaultValue={values.currency ?? "USD"}
+                  aria-label="MRR currency"
+                  className="field !w-auto"
+                >
+                  <option value="USD">USD</option>
+                  <option value="GTQ">GTQ</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="sm:col-span-2">
             <label htmlFor="ownerId" className="label mb-1.5 block">

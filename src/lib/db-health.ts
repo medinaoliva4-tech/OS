@@ -64,7 +64,7 @@ export async function checkDatabase(): Promise<DbStatus> {
           "Run migrations once, using the DIRECT connection string (port 5432):",
           "DATABASE_URL=\"<direct>\" DIRECT_URL=\"<direct>\" npx prisma migrate deploy",
           "DATABASE_URL=\"<direct>\" DIRECT_URL=\"<direct>\" npx tsx prisma/seed.ts",
-          "Migrations deliberately do not run during the Vercel build — a build step should not write to your database.",
+          "The Vercel build runs `prisma migrate deploy`, so check DIRECT_URL is set in the Vercel project — a failed migration there leaves the schema half-made.",
         ],
       };
     }

@@ -1,11 +1,14 @@
 "use client";
 
-import { useTransition } from "react";
-import { setDealStage, deleteDeal } from "@/app/actions/deals";
+import { useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
+import { setDealStage, deleteDeal, updateDeal } from "@/app/actions/deals";
 import { DEAL_STAGES, DEAL_SOURCES, option } from "@/lib/domain";
-import { formatDate, formatMoney, daysUntil } from "@/lib/format";
+import { formatDate, daysUntil } from "@/lib/format";
 import { BrandDot, Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/ui/Avatar";
+import { Icon } from "@/components/ui/Icon";
+import { Money } from "@/components/ui/Money";
 
 export type DealCardData = {
   id: string;
@@ -15,17 +18,163 @@ export type DealCardData = {
   currency: string;
   probability: number;
   source: string | null;
+  notes: string | null;
   expectedCloseDate: Date | null;
   account: { name: string; slug: string; brandHex: string };
   owner: { name: string; avatarHue: number } | null;
 };
 
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      className="btn btn-primary focusable !py-1 !text-[11px]"
+      disabled={pending}
+    >
+      {pending ? "Saving…" : "Save"}
+    </button>
+  );
+}
+
+function DealEditForm({
+  deal,
+  onDone,
+}: {
+  deal: DealCardData;
+  onDone: () => void;
+}) {
+  return (
+    <form
+      action={async (formData) => {
+        await updateDeal(formData);
+        onDone();
+      }}
+      className="space-y-2"
+    >
+      <input type="hidden" name="id" value={deal.id} />
+      <div>
+        <label className="sr-only" htmlFor={`deal-edit-title-${deal.id}`}>
+          Title
+        </label>
+        <input
+          id={`deal-edit-title-${deal.id}`}
+          name="title"
+          required
+          autoFocus
+          defaultValue={deal.title}
+          className="field !py-1 !text-[12px]"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label mb-1 block" htmlFor={`deal-edit-value-${deal.id}`}>
+            Value (USD)
+          </label>
+          <input
+            id={`deal-edit-value-${deal.id}`}
+            name="value"
+            type="number"
+            min={0}
+            step={500}
+            defaultValue={deal.value}
+            className="field !py-1 !text-[12px]"
+          />
+        </div>
+        <div>
+          <label
+            className="label mb-1 block"
+            htmlFor={`deal-edit-probability-${deal.id}`}
+          >
+            Probability %
+          </label>
+          <input
+            id={`deal-edit-probability-${deal.id}`}
+            name="probability"
+            type="number"
+            min={0}
+            max={100}
+            step={5}
+            defaultValue={deal.probability}
+            className="field !py-1 !text-[12px]"
+          />
+        </div>
+        <div>
+          <label className="label mb-1 block" htmlFor={`deal-edit-source-${deal.id}`}>
+            Source
+          </label>
+          <select
+            id={`deal-edit-source-${deal.id}`}
+            name="source"
+            defaultValue={deal.source ?? ""}
+            className="field !py-1 !text-[12px]"
+          >
+            <option value="">—</option>
+            {DEAL_SOURCES.map((source) => (
+              <option key={source.value} value={source.value}>
+                {source.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label mb-1 block" htmlFor={`deal-edit-close-${deal.id}`}>
+            Expected close
+          </label>
+          <input
+            id={`deal-edit-close-${deal.id}`}
+            name="expectedCloseDate"
+            type="date"
+            defaultValue={
+              deal.expectedCloseDate
+                ? new Date(deal.expectedCloseDate).toISOString().slice(0, 10)
+                : ""
+            }
+            className="field !py-1 !text-[12px]"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="label mb-1 block" htmlFor={`deal-edit-notes-${deal.id}`}>
+          Notes
+        </label>
+        <textarea
+          id={`deal-edit-notes-${deal.id}`}
+          name="notes"
+          rows={2}
+          defaultValue={deal.notes ?? ""}
+          className="field !py-1 !text-[12px]"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <SaveButton />
+        <button
+          type="button"
+          onClick={onDone}
+          className="btn btn-ghost focusable !py-1 !text-[11px]"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function DealCard({ deal }: { deal: DealCardData }) {
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
   const source = deal.source ? option(DEAL_SOURCES, deal.source) : null;
   const days = daysUntil(deal.expectedCloseDate);
   const slipping =
     days !== null && days < 0 && !["WON", "LOST"].includes(deal.stage);
+
+  if (editing) {
+    return (
+      <article className="surface-flat p-3">
+        <DealEditForm deal={deal} onDone={() => setEditing(false)} />
+      </article>
+    );
+  }
 
   return (
     <article
@@ -51,7 +200,7 @@ export function DealCard({ deal }: { deal: DealCardData }) {
 
       <div className="mt-2 flex items-baseline justify-between gap-2">
         <span className="text-[15px] font-semibold tabular-nums">
-          {formatMoney(deal.value, deal.currency, { compact: true })}
+          <Money amount={deal.value} currency={deal.currency} compact />
         </span>
         <span
           className="text-[11px] tabular-nums"
@@ -96,6 +245,15 @@ export function DealCard({ deal }: { deal: DealCardData }) {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={pending}
+          className="btn btn-quiet focusable !px-1.5 !py-1 !text-[11px]"
+          aria-label={`Edit ${deal.title}`}
+        >
+          <Icon name="edit" size={13} />
+        </button>
         <button
           type="button"
           onClick={() => {

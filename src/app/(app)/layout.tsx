@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
+import { canViewFinancials } from "@/lib/policy";
 import { checkDatabase } from "@/lib/db-health";
 import { SetupRequired } from "@/components/SetupRequired";
 import { Sidebar } from "@/components/shell/Sidebar";
@@ -25,11 +26,17 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
+  const hideFinancial = !canViewFinancials(user.role);
+
   // Sidebar counters and palette entries in one round of queries — these run
-  // on every authenticated page, so they stay deliberately cheap.
+  // on every authenticated page, so they stay deliberately cheap. The open
+  // deals count is money-adjacent, so it's skipped entirely for a viewer who
+  // can't see financials rather than fetched and just not displayed.
   const [openTasks, openDeals, needsAttention, brandRows] = await Promise.all([
     db.task.count({ where: { status: { notIn: ["DONE"] } } }),
-    db.deal.count({ where: { stage: { notIn: ["WON", "LOST"] } } }),
+    hideFinancial
+      ? Promise.resolve(0)
+      : db.deal.count({ where: { stage: { notIn: ["WON", "LOST"] } } }),
     db.integration.count({
       where: { status: { in: ["NEEDS_SETUP", "ERROR", "DEGRADED"] } },
     }),
@@ -51,18 +58,18 @@ export default async function AppLayout({
 
   const counts: Record<string, number> = {
     "/tasks": openTasks,
-    "/pipeline": openDeals,
     "/connections": needsAttention,
+    ...(hideFinancial ? {} : { "/pipeline": openDeals }),
   };
 
   return (
     <div className="min-h-dvh">
-      <Sidebar counts={counts} />
+      <Sidebar counts={counts} hideFinancial={hideFinancial} />
       {/* overflow-x: clip (not hidden) contains a wide table's scroll area
           without turning this into a scroll container, which would break the
           sticky topbar. */}
       <div className="[overflow-x:clip] lg:pl-[228px]">
-        <Topbar user={user} brands={brands} />
+        <Topbar user={user} brands={brands} hideFinancial={hideFinancial} />
         <main className="animate-in px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>

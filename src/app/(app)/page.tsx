@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { getDashboardData, pipelineProgress } from "@/lib/queries";
-import { formatDate, formatMoney, formatRelative, daysUntil } from "@/lib/format";
+import { formatDate, formatRelative, daysUntil } from "@/lib/format";
 import { CONTENT_STAGES, DEAL_STAGES, TASK_PRIORITIES, option } from "@/lib/domain";
+import { canViewFinancials } from "@/lib/policy";
+import { toUsdAmount } from "@/lib/currency";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardHeader, EmptyState, Meter, Stat } from "@/components/ui/Card";
+import { Money } from "@/components/ui/Money";
 import { BrandDot, Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
@@ -14,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+  const canView = user ? canViewFinancials(user.role) : false;
   const data = await getDashboardData();
   const progress = pipelineProgress(data.pipelineSteps);
 
@@ -58,21 +62,33 @@ export default async function DashboardPage() {
       {/* Headline numbers                                                  */}
       {/* ---------------------------------------------------------------- */}
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat
-          label="Monthly recurring"
-          value={formatMoney(data.mrr)}
-          sub={`${data.accounts.filter((a) => a.status === "ACTIVE").length} active brands`}
-        />
-        <Stat
-          label="Weighted pipeline"
-          value={formatMoney(data.weightedPipeline, "USD", { compact: true })}
-          sub={`${data.openDeals.length} open · ${formatMoney(
-            data.openDeals.reduce((s, d) => s + d.value, 0),
-            "USD",
-            { compact: true },
-          )} unweighted`}
-          href="/pipeline"
-        />
+        {canView && (
+          <>
+            <Stat
+              label="Monthly recurring"
+              value={<Money amount={data.mrr} />}
+              sub={`${data.accounts.filter((a) => a.status === "ACTIVE").length} active brands`}
+            />
+            <Stat
+              label="Weighted pipeline"
+              value={<Money amount={data.weightedPipeline} compact />}
+              sub={
+                <>
+                  {data.openDeals.length} open ·{" "}
+                  <Money
+                    amount={data.openDeals.reduce(
+                      (s, d) => s + toUsdAmount(d.value, d.currency),
+                      0,
+                    )}
+                    compact
+                  />{" "}
+                  unweighted
+                </>
+              }
+              href="/pipeline"
+            />
+          </>
+        )}
         <Stat
           label="Open pendientes"
           value={data.tasks.length}
@@ -389,45 +405,46 @@ export default async function DashboardPage() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader title="Open deals" subtitle="Largest first." />
-            {data.openDeals.length === 0 ? (
-              <EmptyState title="No open deals" hint="Add one from the pipeline." />
-            ) : (
-              <ul className="space-y-2.5">
-                {data.openDeals.slice(0, 5).map((deal) => {
-                  const stage = option(DEAL_STAGES, deal.stage);
-                  return (
-                    <li key={deal.id}>
-                      <Link
-                        href="/pipeline"
-                        className="row-hover focusable -mx-2 block rounded-lg px-2 py-1.5"
-                      >
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[12.5px] font-medium">
-                            {deal.account.name}
+          {canView && (
+            <Card>
+              <CardHeader title="Open deals" subtitle="Largest first." />
+              {data.openDeals.length === 0 ? (
+                <EmptyState title="No open deals" hint="Add one from the pipeline." />
+              ) : (
+                <ul className="space-y-2.5">
+                  {data.openDeals.slice(0, 5).map((deal) => {
+                    const stage = option(DEAL_STAGES, deal.stage);
+                    return (
+                      <li key={deal.id}>
+                        <Link
+                          href="/pipeline"
+                          className="row-hover focusable -mx-2 block rounded-lg px-2 py-1.5"
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[12.5px] font-medium">
+                              {deal.account.name}
+                            </span>
+                            <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">
+                              <Money amount={deal.value} currency={deal.currency} compact />
+                            </span>
                           </span>
-                          <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">
-                            {formatMoney(deal.value, deal.currency, { compact: true })}
+                          <span className="mt-1 flex items-center gap-2">
+                            <Chip tone={stage.tone}>{stage.label}</Chip>
+                            <span
+                              className="text-[11px] tabular-nums"
+                              style={{ color: "var(--text-faint)" }}
+                            >
+                              {deal.probability}%
+                            </span>
                           </span>
-                        </span>
-                        <span className="mt-1 flex items-center gap-2">
-                          <Chip tone={stage.tone}>{stage.label}</Chip>
-                          <span
-                            className="text-[11px] tabular-nums"
-                            style={{ color: "var(--text-faint)" }}
-                          >
-                            {deal.probability}%
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </>

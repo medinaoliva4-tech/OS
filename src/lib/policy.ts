@@ -7,7 +7,7 @@
  */
 
 export const ALLOWED_EMAIL_DOMAIN = (
-  process.env.ALLOWED_EMAIL_DOMAIN ?? "inherentglobal.com"
+  process.env.ALLOWED_EMAIL_DOMAIN || "inherentglobal.com"
 ).toLowerCase();
 
 export function normalizeEmail(email: string): string {
@@ -54,4 +54,13 @@ const RANK: Record<Role, number> = { OWNER: 3, ADMIN: 2, MEMBER: 1 };
 export function atLeast(role: string, minimum: Role): boolean {
   const r = RANK[role as Role] ?? 0;
   return r >= RANK[minimum];
+}
+
+/**
+ * Financial data — MRR, revenue, deal values, weighted pipeline, the whole
+ * Pipeline screen — is restricted to ADMIN and OWNER. MEMBER sees everything
+ * else in the OS (brands, tasks, content, guidelines) but never money.
+ */
+export function canViewFinancials(role: string): boolean {
+  return atLeast(role, "ADMIN");
 }

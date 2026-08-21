@@ -15,11 +15,20 @@ export type PaletteEntry = {
   hex?: string;
 };
 
+/** Nav items that lead to a money screen — hidden entirely from MEMBER. */
+const FINANCIAL_HREFS = new Set(["/pipeline", "/finance"]);
+
 /**
  * Cmd/Ctrl-K navigation. The entries for brands are passed in from the server
  * layout so "nao" jumps straight to the NAO workspace without a round trip.
  */
-export function CommandPalette({ brands }: { brands: PaletteEntry[] }) {
+export function CommandPalette({
+  brands,
+  hideFinancial = false,
+}: {
+  brands: PaletteEntry[];
+  hideFinancial?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -28,7 +37,9 @@ export function CommandPalette({ brands }: { brands: PaletteEntry[] }) {
 
   const entries = useMemo<PaletteEntry[]>(
     () => [
-      ...ALL_NAV_ITEMS.map((item) => ({
+      ...ALL_NAV_ITEMS.filter(
+        (item) => !hideFinancial || !FINANCIAL_HREFS.has(item.href),
+      ).map((item) => ({
         id: `nav:${item.href}`,
         label: item.label,
         hint: item.hint,
@@ -37,7 +48,7 @@ export function CommandPalette({ brands }: { brands: PaletteEntry[] }) {
       })),
       ...brands,
     ],
-    [brands],
+    [brands, hideFinancial],
   );
 
   const results = useMemo(() => {

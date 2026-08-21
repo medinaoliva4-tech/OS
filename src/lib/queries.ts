@@ -1,11 +1,21 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { OPEN_DEAL_STAGES } from "@/lib/domain";
+import { toUsdAmount } from "@/lib/currency";
 
-/** Weighted pipeline: value × probability, the only forecast worth quoting. */
-export function weighted(deals: { value: number; probability: number }[]): number {
+/**
+ * Weighted pipeline: value × probability, the only forecast worth quoting.
+ * Normalizes each deal to USD first — deals can be entered in USD or GTQ,
+ * and a plain sum would add the two currencies together as if they matched.
+ */
+export function weighted(
+  deals: { value: number; probability: number; currency: string }[],
+): number {
   return Math.round(
-    deals.reduce((sum, deal) => sum + deal.value * (deal.probability / 100), 0),
+    deals.reduce(
+      (sum, deal) => sum + toUsdAmount(deal.value, deal.currency) * (deal.probability / 100),
+      0,
+    ),
   );
 }
 
@@ -74,12 +84,12 @@ export async function getDashboardData() {
 
   const mrr = accounts
     .filter((a) => a.status === "ACTIVE")
-    .reduce((sum, a) => sum + a.mrr, 0);
+    .reduce((sum, a) => sum + toUsdAmount(a.mrr, a.currency), 0);
 
   return {
     accounts,
     openDeals,
-    wonValue: wonDeals.reduce((sum, d) => sum + d.value, 0),
+    wonValue: wonDeals.reduce((sum, d) => sum + toUsdAmount(d.value, d.currency), 0),
     tasks,
     overdueTasks,
     upcomingContent,

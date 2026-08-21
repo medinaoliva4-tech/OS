@@ -13,19 +13,29 @@ export const metadata: Metadata = { title: "Sign in" };
 /**
  * Never prerender this page.
  *
- * The setup check below returns before `cookies()` is ever touched, so without
- * this Next sees no dynamic API, marks the route static, and bakes whatever
- * the database looked like at BUILD time into permanent HTML. A Vercel build
- * has no database access by design — which would ship a frozen
- * "cannot reach the database" page that never recovers.
+ * The setup check below can return before `cookies()` is ever touched, so
+ * without this Next sees no dynamic API, marks the route static, and bakes
+ * whatever the database looked like at BUILD time into permanent HTML. A
+ * Vercel build reaches the database only for migrations, not for rendering —
+ * so that would ship a frozen "cannot reach the database" page which never
+ * recovers. `scripts/assert-dynamic-routes.ts` guards this in CI.
  */
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // Say what is wrong rather than 500 when the database is not usable yet.
   const health = await checkDatabase();
   if (!health.ok) return <SetupRequired status={health} />;
 
-  if (await getCurrentUser()) redirect("/");
+  const { next } = await searchParams;
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
+
+  if (await getCurrentUser()) redirect(safeNext ?? "/");
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-12">
@@ -68,7 +78,7 @@ export default async function LoginPage() {
           className="surface p-6"
           style={{ boxShadow: "0 24px 60px -20px rgb(0 0 0 / 0.6)" }}
         >
-          <LoginForm domain={ALLOWED_EMAIL_DOMAIN} />
+          <LoginForm domain={ALLOWED_EMAIL_DOMAIN} next={safeNext} />
         </div>
 
         <p

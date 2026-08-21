@@ -210,6 +210,46 @@ export const INTEGRATION_CATEGORIES: Option[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Services
+// ---------------------------------------------------------------------------
+
+export const SERVICE_STATUSES: Option[] = [
+  { value: "ACTIVE", label: "Active", tone: "success" },
+  { value: "PAUSED", label: "Paused", tone: "neutral" },
+];
+
+// ---------------------------------------------------------------------------
+// Finance
+// ---------------------------------------------------------------------------
+
+export const COST_CATEGORIES: Option[] = [
+  { value: "TOOLS", label: "Tools", tone: "info" },
+  { value: "INFRA", label: "Infrastructure", tone: "accent" },
+  { value: "OFFICE", label: "Office", tone: "neutral" },
+  { value: "MARKETING", label: "Marketing", tone: "progress" },
+  { value: "LEGAL", label: "Legal", tone: "warn" },
+  { value: "OTHER", label: "Other", tone: "neutral" },
+];
+
+export const COST_RECURRENCE: Option[] = [
+  { value: "MONTHLY", label: "Monthly", tone: "info" },
+  { value: "YEARLY", label: "Yearly", tone: "accent" },
+  { value: "ONE_TIME", label: "One-time", tone: "neutral" },
+];
+
+export const PAY_CADENCE: Option[] = [
+  { value: "MONTHLY", label: "Monthly", tone: "info" },
+  { value: "YEARLY", label: "Yearly", tone: "accent" },
+];
+
+/** Normalizes any Cost/Salary amount to a monthly figure for the P&L. */
+export function toMonthly(amount: number, cadence: string): number {
+  if (cadence === "YEARLY") return amount / 12;
+  if (cadence === "ONE_TIME") return 0;
+  return amount;
+}
+
+// ---------------------------------------------------------------------------
 // Lookup helpers
 // ---------------------------------------------------------------------------
 

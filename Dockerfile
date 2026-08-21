@@ -22,6 +22,7 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npm ci
 
 # --- build ------------------------------------------------------------------
@@ -51,6 +52,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./next.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
