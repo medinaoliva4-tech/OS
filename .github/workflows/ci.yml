@@ -53,6 +53,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      # A route that reads live state must never be prerendered — see
+      # scripts/assert-dynamic-routes.ts for the bug this guards.
+      - name: No live route may be prerendered
+        run: npm run verify:routes
+
+      # Vercel builds with no database access. The build must not need one.
+      - name: The build must succeed with no database reachable
+        env:
+          DATABASE_URL: postgresql://nobody:nope@127.0.0.1:9999/nothing
+          DIRECT_URL: postgresql://nobody:nope@127.0.0.1:9999/nothing
+        run: |
+          rm -rf .next
+          npm run build
+          npm run verify:routes
+
       - name: Apply migrations
         run: npx prisma migrate deploy
 

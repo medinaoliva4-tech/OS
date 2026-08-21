@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
+import { checkDatabase } from "@/lib/db-health";
+import { SetupRequired } from "@/components/SetupRequired";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/policy";
 import { brand } from "@/lib/brand";
 import { InherentLockup } from "@/components/ui/brand/InherentMarks";
@@ -8,7 +10,21 @@ import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in" };
 
+/**
+ * Never prerender this page.
+ *
+ * The setup check below returns before `cookies()` is ever touched, so without
+ * this Next sees no dynamic API, marks the route static, and bakes whatever
+ * the database looked like at BUILD time into permanent HTML. A Vercel build
+ * has no database access by design — which would ship a frozen
+ * "cannot reach the database" page that never recovers.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
+  const health = await checkDatabase();
+  if (!health.ok) return <SetupRequired status={health} />;
+
   if (await getCurrentUser()) redirect("/");
 
   return (

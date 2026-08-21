@@ -184,6 +184,16 @@ to Production *and* Preview:
 | `ALLOWED_EMAIL_DOMAIN` | `inherentglobal.com` |
 | `SEED_PASSWORD` | a password for the first sign-in |
 
+**Checking a deployment.** `GET /api/health` answers in one curl: `200` when
+the OS can serve, `503` with a machine-readable reason when it cannot. If the
+database is unreachable or unmigrated, every page shows a setup screen naming
+the problem instead of a bare 500 — and it recovers on its own once the
+database is healthy, with no redeploy.
+
+```bash
+curl -s https://<deployment>/api/health | jq
+```
+
 **3. Create the schema.** Migrations do not run on Vercel — its build step has
 no business writing to your database. Run them once from your machine:
 

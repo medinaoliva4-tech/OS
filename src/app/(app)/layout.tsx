@@ -1,15 +1,27 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
+import { checkDatabase } from "@/lib/db-health";
+import { SetupRequired } from "@/components/SetupRequired";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import type { PaletteEntry } from "@/components/shell/CommandPalette";
+
+// Same reason as the login page: the setup check short-circuits before any
+// dynamic API, so this must be pinned dynamic or build-time database state
+// gets baked into the shell.
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // A first deploy fails for boring reasons — no connection string, or a
+  // schema nobody migrated. Say which, instead of rendering a bare 500.
+  const health = await checkDatabase();
+  if (!health.ok) return <SetupRequired status={health} />;
+
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
