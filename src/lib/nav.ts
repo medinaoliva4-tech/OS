@@ -14,9 +14,10 @@ export type NavGroup = {
 };
 
 /**
- * Navigation is grouped by the question each screen answers, not by data
- * model. "Revenue" is where you go when you want to know what money is doing;
- * "Production" is where you go when you want to know what is being made.
+ * Minimalist nav (2026-08-24, per Rodrigo): only what he checks day to day.
+ * Pipeline/Contacts/Services/Content/Calendar/Assets/Connections live on in
+ * the app and stay reachable by direct URL — they're just not in the primary
+ * nav or command palette anymore. Team/Settings stay reachable via UserMenu.
  */
 export const NAV: NavGroup[] = [
   {
@@ -37,19 +38,7 @@ export const NAV: NavGroup[] = [
         href: "/accounts",
         label: "Brands",
         icon: "accounts",
-        hint: "Every client brand and its workspace",
-      },
-      {
-        href: "/pipeline",
-        label: "Pipeline",
-        icon: "pipeline",
-        hint: "Deals by stage and weighted forecast",
-      },
-      {
-        href: "/contacts",
-        label: "Contacts",
-        icon: "contacts",
-        hint: "People at client brands",
+        hint: "Every client brand and its workspace — flujos por cliente",
       },
       {
         href: "/finance",
@@ -63,57 +52,10 @@ export const NAV: NavGroup[] = [
     title: "Production",
     items: [
       {
-        href: "/services",
-        label: "Services",
-        icon: "services",
-        hint: "The lines of work the agency sells, and who runs each one",
-      },
-      {
         href: "/tasks",
         label: "Pendientes",
         icon: "tasks",
         hint: "The board — everything outstanding, by brand and owner",
-      },
-      {
-        href: "/content",
-        label: "Content",
-        icon: "content",
-        hint: "The pipeline from idea to published",
-      },
-      {
-        href: "/calendar",
-        label: "Calendar",
-        icon: "calendar",
-        hint: "Publishing calendar, filterable by brand",
-      },
-      {
-        href: "/assets",
-        label: "Assets",
-        icon: "assets",
-        hint: "Raw, generated, approved and final files with where they live",
-      },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      {
-        href: "/connections",
-        label: "Connections",
-        icon: "connections",
-        hint: "Drive, Jockey, Higgsfield, GitHub, Zapier — status of every pipe",
-      },
-      {
-        href: "/team",
-        label: "Team",
-        icon: "team",
-        hint: "Who has access, and inviting new @inherentglobal.com people",
-      },
-      {
-        href: "/settings",
-        label: "Settings",
-        icon: "settings",
-        hint: "Workspace policy, brand tokens and environment",
       },
     ],
   },
