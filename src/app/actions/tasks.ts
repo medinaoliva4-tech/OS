@@ -40,6 +40,29 @@ export async function setTaskStatus(taskId: string, status: string) {
   refresh();
 }
 
+export async function setTaskAssignee(taskId: string, assigneeId: string | null) {
+  const user = await requireUser();
+
+  const task = await db.task.update({
+    where: { id: taskId },
+    data: { assigneeId },
+    include: { assignee: { select: { name: true } } },
+  });
+
+  await logActivity({
+    actorId: user.id,
+    verb: "reassigned",
+    entityType: "Task",
+    entityId: task.id,
+    summary: task.assignee
+      ? `${task.title} → assigned to ${task.assignee.name}`
+      : `${task.title} → unassigned`,
+    meta: { assigneeId },
+  });
+
+  refresh();
+}
+
 export async function createTask(formData: FormData) {
   const user = await requireUser();
 
@@ -72,7 +95,7 @@ export async function createTask(formData: FormData) {
     verb: "created",
     entityType: "Task",
     entityId: task.id,
-    summary: `Added “${title}”`,
+    summary: `Added "${title}"`,
   });
 
   refresh();
@@ -106,7 +129,7 @@ export async function updateTask(formData: FormData) {
     verb: "updated",
     entityType: "Task",
     entityId: task.id,
-    summary: `Updated “${task.title}”`,
+    summary: `Updated "${task.title}"`,
   });
 
   refresh();
@@ -121,7 +144,7 @@ export async function deleteTask(taskId: string) {
     verb: "deleted",
     entityType: "Task",
     entityId: taskId,
-    summary: `Deleted “${task.title}”`,
+    summary: `Deleted "${task.title}"`,
   });
 
   refresh();
