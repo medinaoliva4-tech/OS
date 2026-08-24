@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setTaskStatus, deleteTask } from "@/app/actions/tasks";
+import { setTaskStatus, setTaskAssignee, deleteTask } from "@/app/actions/tasks";
 import { TASK_STATUSES, TASK_PRIORITIES, option } from "@/lib/domain";
 import { daysUntil, formatDate, parseLabels } from "@/lib/format";
 import { BrandDot, Chip } from "@/components/ui/Chip";
@@ -16,15 +16,18 @@ export type TaskCardData = {
   priority: string;
   dueDate: Date | null;
   labels: string;
+  assigneeId: string | null;
   account: { name: string; slug: string; brandHex: string } | null;
   assignee: { name: string; avatarHue: number } | null;
 };
 
 export function TaskCard({
   task,
+  members = [],
   highlighted = false,
 }: {
   task: TaskCardData;
+  members?: { id: string; name: string }[];
   highlighted?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -39,6 +42,10 @@ export function TaskCard({
 
   function move(status: string) {
     startTransition(() => setTaskStatus(task.id, status));
+  }
+
+  function reassign(assigneeId: string) {
+    startTransition(() => setTaskAssignee(task.id, assigneeId || null));
   }
 
   return (
@@ -159,10 +166,28 @@ export function TaskCard({
                   ))}
                 </select>
 
+                <label className="label sr-only" htmlFor={`assignee-${task.id}`}>
+                  Assignee
+                </label>
+                <select
+                  id={`assignee-${task.id}`}
+                  value={task.assigneeId ?? ""}
+                  onChange={(event) => reassign(event.target.value)}
+                  disabled={pending}
+                  className="field !w-auto !py-1 !text-[11px]"
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm(`Delete “${task.title}”? This cannot be undone.`)) {
+                    if (confirm(`Delete "${task.title}"? This cannot be undone.`)) {
                       startTransition(() => deleteTask(task.id));
                     }
                   }}
