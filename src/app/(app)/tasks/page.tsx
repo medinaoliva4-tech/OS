@@ -255,6 +255,7 @@ export default async function TasksPage({
                       <TaskCard
                         key={task.id}
                         task={task}
+                        members={members}
                         highlighted={params.focus === task.id}
                       />
                     ))
