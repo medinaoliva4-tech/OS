@@ -73,24 +73,35 @@ export function Stat({
   sub,
   tone,
   href,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   tone?: string;
   href?: string;
+  icon?: React.ReactNode;
 }) {
   const body = (
     <>
-      <p className="label">{label}</p>
-      <p
-        className="mt-2 text-2xl font-semibold tracking-tight tabular-nums"
-        style={tone ? { color: tone } : undefined}
-      >
-        {value}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="label">{label}</p>
+          <p
+            className="mt-2 text-[1.75rem] leading-none font-bold tracking-tight tabular-nums"
+            style={tone ? { color: tone } : undefined}
+          >
+            {value}
+          </p>
+        </div>
+        {icon && (
+          <span className="icon-badge" style={tone ? ({ ["--tone" as string]: tone }) : undefined}>
+            {icon}
+          </span>
+        )}
+      </div>
       {sub && (
-        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
+        <p className="mt-2 text-xs font-medium" style={{ color: tone ?? "var(--text-faint)" }}>
           {sub}
         </p>
       )}
@@ -98,16 +109,23 @@ export function Stat({
   );
 
   const className =
-    "surface block p-4 transition-colors" + (href ? " hover:bg-[var(--bg-hover)]" : "");
+    "surface-tone block p-4 transition-colors" +
+    (href ? " hover:bg-[var(--bg-hover)]" : "");
+
+  const style = tone ? ({ ["--tone" as string]: tone } as React.CSSProperties) : undefined;
 
   if (href) {
     return (
-      <a href={href} className={`${className} focusable`}>
+      <a href={href} className={`${className} focusable`} style={style}>
         {body}
       </a>
     );
   }
-  return <div className={className}>{body}</div>;
+  return (
+    <div className={className} style={style}>
+      {body}
+    </div>
+  );
 }
 
 /**
@@ -122,7 +140,7 @@ export function Meter({
   total,
   inFlight = 0,
   tone = "var(--accent)",
-  height = 6,
+  height = 9,
 }: {
   value: number;
   total: number;
