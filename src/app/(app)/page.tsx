@@ -82,7 +82,7 @@ export default async function DashboardPage() {
       {/* ---------------------------------------------------------------- */}
       {/* Headline numbers                                                  */}
       {/* ---------------------------------------------------------------- */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canView && (
           <>
             <Stat
@@ -123,18 +123,6 @@ export default async function DashboardPage() {
           tone={data.overdueTasks > 0 ? "var(--color-danger)" : "var(--color-info)"}
           href="/tasks"
           icon={<Icon name="tasks" size={18} />}
-        />
-        <Stat
-          label="Connections"
-          value={`${data.integrations.length - needsAttention.length}/${data.integrations.length}`}
-          sub={
-            needsAttention.length > 0
-              ? `${needsAttention.length} need setup`
-              : "All connected"
-          }
-          tone={needsAttention.length > 0 ? "var(--color-warn)" : "var(--color-ok)"}
-          href="/connections"
-          icon={<Icon name="connections" size={18} />}
         />
       </div>
 
