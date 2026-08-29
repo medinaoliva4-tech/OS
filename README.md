@@ -208,13 +208,10 @@ DIRECT_URL="<the direct string>" DATABASE_URL="<the direct string>" \
 
 Both use the **direct** string. Then deploy, and sign in.
 
-**4. Optional — deploy from CI instead.** `.github/workflows/deploy-vercel.yml`
-migrates, seeds if the database is empty, deploys, and then checks the
-sign-in page actually loads before calling it done. It needs four repository
-secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (the last two
-come from `.vercel/project.json` after `vercel link`) and `DIRECT_URL`. If you
-would rather not manage a token, Vercel's own Git integration covers steps 1–3
-with no workflow at all.
+**4. Deploys happen automatically.** Vercel's own Git integration builds and
+ships every push (`vercel.json`'s `buildCommand` already runs
+`prisma migrate deploy` first), so there is no separate CI workflow to
+configure or feed secrets to.
 
 ### Self-hosting instead
 
