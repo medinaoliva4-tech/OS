@@ -15,6 +15,27 @@ import { Icon } from "@/components/ui/Icon";
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
+/** Card title with a colored icon badge — gives every section a strong,
+ * scannable visual anchor instead of plain text. */
+function TitleWithIcon({
+  icon,
+  tone,
+  children,
+}: {
+  icon: React.ComponentProps<typeof Icon>["name"];
+  tone: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className="icon-badge" style={{ ["--tone" as string]: tone }}>
+        <Icon name={icon} size={18} />
+      </span>
+      {children}
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const canView = user ? canViewFinancials(user.role) : false;
@@ -61,13 +82,15 @@ export default async function DashboardPage() {
       {/* ---------------------------------------------------------------- */}
       {/* Headline numbers                                                  */}
       {/* ---------------------------------------------------------------- */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canView && (
           <>
             <Stat
               label="Monthly recurring"
               value={<Money amount={data.mrr} />}
               sub={`${data.accounts.filter((a) => a.status === "ACTIVE").length} active brands`}
+              tone="var(--color-ok)"
+              icon={<Icon name="finance" size={18} />}
             />
             <Stat
               label="Weighted pipeline"
@@ -86,6 +109,8 @@ export default async function DashboardPage() {
                 </>
               }
               href="/pipeline"
+              tone="var(--color-progress)"
+              icon={<Icon name="pipeline" size={18} />}
             />
           </>
         )}
@@ -95,19 +120,9 @@ export default async function DashboardPage() {
           sub={
             data.overdueTasks > 0 ? `${data.overdueTasks} overdue` : "None overdue"
           }
-          tone={data.overdueTasks > 0 ? "var(--color-danger)" : undefined}
+          tone={data.overdueTasks > 0 ? "var(--color-danger)" : "var(--color-info)"}
           href="/tasks"
-        />
-        <Stat
-          label="Connections"
-          value={`${data.integrations.length - needsAttention.length}/${data.integrations.length}`}
-          sub={
-            needsAttention.length > 0
-              ? `${needsAttention.length} need setup`
-              : "All connected"
-          }
-          tone={needsAttention.length > 0 ? "var(--color-warn)" : "var(--color-ok)"}
-          href="/connections"
+          icon={<Icon name="tasks" size={18} />}
         />
       </div>
 
@@ -118,7 +133,11 @@ export default async function DashboardPage() {
         <div className="min-w-0 space-y-5 xl:col-span-2">
           <Card>
             <CardHeader
-              title="Content system"
+              title={
+                <TitleWithIcon icon="content" tone="var(--color-progress)">
+                  Content system
+                </TitleWithIcon>
+              }
               subtitle="Every brand's progress through the nine checkpoints, from guidelines to scheduled."
               action={
                 <Link href="/connections" className="btn btn-quiet focusable">
@@ -202,7 +221,11 @@ export default async function DashboardPage() {
           {/* ------------------------------------------------------------ */}
           <Card>
             <CardHeader
-              title="Publishing this week"
+              title={
+                <TitleWithIcon icon="calendar" tone="var(--color-info)">
+                  Publishing this week
+                </TitleWithIcon>
+              }
               subtitle="Scheduled and in-flight across every brand."
               action={
                 <Link href="/calendar" className="btn btn-quiet focusable">
@@ -265,7 +288,14 @@ export default async function DashboardPage() {
             )}
           </Card>
           <Card>
-            <CardHeader title="Activity" subtitle="Everything that moved." />
+            <CardHeader
+              title={
+                <TitleWithIcon icon="clock" tone="var(--color-muted-olive, var(--accent))">
+                  Activity
+                </TitleWithIcon>
+              }
+              subtitle="Everything that moved."
+            />
             {data.activity.length === 0 ? (
               <EmptyState title="Nothing yet" hint="Actions across the OS show up here." />
             ) : (
@@ -308,7 +338,11 @@ export default async function DashboardPage() {
         <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader
-              title="Assigned to you"
+              title={
+                <TitleWithIcon icon="check" tone="var(--color-ok)">
+                  Assigned to you
+                </TitleWithIcon>
+              }
               subtitle={
                 myTasks.length === 0
                   ? "You are clear."
@@ -380,7 +414,11 @@ export default async function DashboardPage() {
           {needsAttention.length > 0 && (
             <Card>
               <CardHeader
-                title="Needs attention"
+                title={
+                  <TitleWithIcon icon="alert" tone="var(--color-warn)">
+                    Needs attention
+                  </TitleWithIcon>
+                }
                 subtitle="Pipes that are not carrying anything yet."
                 action={
                   <Link href="/connections" className="btn btn-quiet focusable">
@@ -389,25 +427,37 @@ export default async function DashboardPage() {
                   </Link>
                 }
               />
-              <ul className="space-y-1.5">
-                {needsAttention.map((integration) => (
-                  <li
-                    key={integration.id}
-                    className="flex items-center justify-between gap-2 text-[12.5px]"
-                  >
-                    <span className="truncate">{integration.name}</span>
-                    <Chip tone={integration.status === "ERROR" ? "danger" : "warn"}>
-                      {integration.status === "ERROR" ? "error" : "setup"}
-                    </Chip>
-                  </li>
-                ))}
+              <ul className="space-y-2">
+                {needsAttention.map((integration) => {
+                  const isError = integration.status === "ERROR";
+                  const tone = isError ? "var(--color-danger)" : "var(--color-warn)";
+                  return (
+                    <li
+                      key={integration.id}
+                      className="surface-tone flex items-center justify-between gap-2 rounded-r-lg px-3 py-2.5 text-[13px] font-medium"
+                      style={{ ["--tone" as string]: tone }}
+                    >
+                      <span className="truncate">{integration.name}</span>
+                      <Chip tone={isError ? "danger" : "warn"}>
+                        {isError ? "error" : "setup"}
+                      </Chip>
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}
 
           {canView && (
             <Card>
-              <CardHeader title="Open deals" subtitle="Largest first." />
+              <CardHeader
+                title={
+                  <TitleWithIcon icon="pipeline" tone="var(--color-progress)">
+                    Open deals
+                  </TitleWithIcon>
+                }
+                subtitle="Largest first."
+              />
               {data.openDeals.length === 0 ? (
                 <EmptyState title="No open deals" hint="Add one from the pipeline." />
               ) : (

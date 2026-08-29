@@ -43,6 +43,7 @@
     monospace;
 
   --radius-card: 14px;
+  --meter-height: 9px;
 }
 
 :root {
@@ -268,11 +269,34 @@ body {
     background: var(--bg-hover);
   }
 
-  /* Focus ring for keyboard users only. */
+  /* Focus ring for keyboard users only. Extra thick + high contrast so it's
+     impossible to lose track of where you are. */
   .focusable:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 3px solid var(--accent);
     outline-offset: 2px;
     border-radius: 8px;
+  }
+
+  /* Tone-tinted surface: a colored left bar + faint background wash, used to
+     make a card's status legible at a glance without reading any text. */
+  .surface-tone {
+    position: relative;
+    border-left: 4px solid var(--tone, var(--accent));
+    background: color-mix(in oklab, var(--tone, var(--accent)) 7%, var(--bg-raised));
+  }
+
+  /* Icon badge: a soft colored tile behind a section/stat icon. Gives every
+     card a strong, scannable visual anchor instead of plain text. */
+  .icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--tone, var(--accent)) 18%, transparent);
+    color: var(--tone, var(--accent));
+    flex-shrink: 0;
   }
 }
 
